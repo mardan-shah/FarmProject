@@ -1,14 +1,4 @@
 {
-  "version": 2,
-  "buildCommand": "npm install && npm run build",
-  "outputDirectory": "public/build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install --no-optional",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.php"
-    }
-  ]
+  "buildCommand": "npm run build",
+  "outputDirectory": "public/build"
 }
