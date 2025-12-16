@@ -1,9 +1,11 @@
+import React from 'react';
 import DashboardLayout from '../Layouts/DashboardLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Calendar, Droplet, Download, FileText } from 'lucide-react';
 
 export default function MilkProduction() {
+    const { recentProductions } = usePage().props;
     const [successMessage, setSuccessMessage] = useState('');
     const [loadingReport, setLoadingReport] = useState(null);
 
@@ -16,10 +18,13 @@ export default function MilkProduction() {
     const submit = (e) => {
         e.preventDefault();
         post(route('milk-production.store'), {
-            onSuccess: () => {
+            onSuccess: (page) => {
                 setSuccessMessage('Production saved successfully!');
                 reset('milk_kg', 'notes');
                 setTimeout(() => setSuccessMessage(''), 3000);
+            },
+            onError: (errors) => {
+                console.error('Form errors:', errors);
             },
             onFinish: () => reset('milk_kg', 'notes'),
         });
@@ -76,6 +81,7 @@ export default function MilkProduction() {
                                         id="production_date"
                                         value={data.production_date}
                                         onChange={(e) => setData('production_date', e.target.value)}
+                                        max={new Date().toISOString().split('T')[0]}
                                         className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                     />
                                     {errors.production_date && (
@@ -212,31 +218,36 @@ export default function MilkProduction() {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Notes
                                             </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Added By
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                2024-12-15
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                150.5
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">
-                                                Good production
-                                            </td>
-                                        </tr>
-                                        <tr className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                2024-12-14
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                148.2
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">
-                                                -
-                                            </td>
-                                        </tr>
+                                        {recentProductions && recentProductions.length > 0 ? (
+                                            recentProductions.map((production) => (
+                                                <tr key={production.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {new Date(production.production_date).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        {parseFloat(production.milk_kg).toFixed(2)}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                                        {production.notes || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {production.user?.name || 'Unknown'}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="4" className="px-6 py-8 text-center text-sm text-gray-500">
+                                                    No production records found. Start by adding your first milk production record above.
+                                                </td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
                             </div>

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('milk_sales', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('sale_date');
             $table->decimal('milk_kg', 8, 2);
             $table->decimal('sale_amount', 10, 2);
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->timestamps();
             
             $table->index('sale_date');
+            $table->index('user_id');
         });
     }
 

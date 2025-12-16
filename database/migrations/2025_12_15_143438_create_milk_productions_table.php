@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('milk_productions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('production_date');
             $table->decimal('milk_kg', 8, 2);
             $table->text('notes')->nullable();
             $table->timestamps();
             
             $table->index('production_date');
+            $table->index('user_id');
         });
     }
 

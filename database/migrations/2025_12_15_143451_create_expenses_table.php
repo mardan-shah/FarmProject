@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('expense_date');
             $table->enum('expense_type', ['petrol', 'electricity', 'employee_pay', 'farm']);
             $table->string('expense_name')->nullable();
@@ -21,6 +22,7 @@ return new class extends Migration
             $table->timestamps();
             
             $table->index(['expense_date', 'expense_type']);
+            $table->index('user_id');
         });
     }
 
