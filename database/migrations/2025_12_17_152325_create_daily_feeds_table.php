@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('daily_feeds', function (Blueprint $table) {
             $table->id();
+            $table->date('date');
+            $table->decimal('amount', 10, 2);
+            $table->enum('type', ['made', 'used']);
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('daily_feeds');
     }
 };

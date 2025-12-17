@@ -13,18 +13,7 @@ return new class extends Migration
     {
         Schema::create('milk_entries', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('customer_id')->constrained()->onDelete('cascade');
-            $table->date('entry_date');
-            $table->decimal('milk_kg', 8, 2);
-            $table->integer('milk_grams')->default(0);
-            $table->decimal('amount', 10, 2);
-            $table->text('notes')->nullable();
             $table->timestamps();
-            
-            $table->index('user_id');
-            $table->index('customer_id');
-            $table->index('entry_date');
         });
     }
 

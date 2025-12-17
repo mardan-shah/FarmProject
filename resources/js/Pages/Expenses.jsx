@@ -413,7 +413,7 @@ export default function Expenses() {
                                                     {expense.expense_name || '-'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    Rs. {parseFloat(expense.amount).toFixed(2)}
+                                                    ${parseFloat(expense.amount).toFixed(2)}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-500">
                                                     {expense.description || '-'}

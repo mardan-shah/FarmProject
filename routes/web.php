@@ -6,17 +6,15 @@ use App\Http\Controllers\MilkSaleController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PendingPaymentController;
+use App\Http\Controllers\CowController;
+use App\Http\Controllers\DailyFeedController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('login');
 });
 
 Route::get('/api/health', function () {
@@ -46,17 +44,24 @@ Route::middleware('auth')->group(function () {
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
     Route::get('/expenses/report/{period}', [ExpenseController::class, 'report'])->name('expenses.report');
     
-    Route::get('/cows', function () {
-        return Inertia::render('Cows');
-    })->name('cows');
+    Route::get('/cows', [CowController::class, 'index'])->name('cows');
+    Route::post('/cows', [CowController::class, 'store'])->name('cows.store');
+    Route::put('/cows/{cow}', [CowController::class, 'update'])->name('cows.update');
+    Route::delete('/cows/{cow}', [CowController::class, 'destroy'])->name('cows.destroy');
+    
+    Route::get('/daily-feed', [DailyFeedController::class, 'index'])->name('daily-feed');
+    Route::post('/daily-feed', [DailyFeedController::class, 'store'])->name('daily-feed.store');
+    Route::delete('/daily-feed/{dailyFeed}', [DailyFeedController::class, 'destroy'])->name('daily-feed.destroy');
     
     Route::get('/pending-payments', [PendingPaymentController::class, 'index'])->name('pending-payments');
-    Route::get('/pending-payments/customer/{customerId}', [PendingPaymentController::class, 'customerDetail'])->name('pending-payments.customer');
-    Route::post('/pending-payments/customer', [PendingPaymentController::class, 'storeCustomer'])->name('pending-payments.customer.store');
-    Route::post('/pending-payments/milk-entry', [PendingPaymentController::class, 'storeMilkEntry'])->name('pending-payments.milk-entry.store');
-    Route::put('/pending-payments/milk-entry/{id}', [PendingPaymentController::class, 'updateMilkEntry'])->name('pending-payments.milk-entry.update');
-    Route::delete('/pending-payments/milk-entry/{id}', [PendingPaymentController::class, 'destroyMilkEntry'])->name('pending-payments.milk-entry.destroy');
-    Route::get('/pending-payments/report/{customerId}', [PendingPaymentController::class, 'downloadReport'])->name('pending-payments.report');
+    Route::post('/pending-payments', [PendingPaymentController::class, 'store'])->name('pending-payments.store');
+    Route::delete('/pending-payments/{id}', [PendingPaymentController::class, 'destroy'])->name('pending-payments.destroy');
+    
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
+    Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile.update');
+    Route::put('/settings/credentials', [SettingsController::class, 'updateCredentials'])->name('settings.credentials.update');
+    Route::post('/users', [SettingsController::class, 'storeUser'])->name('users.store');
+    Route::delete('/users/{user}', [SettingsController::class, 'deleteUser'])->name('users.delete');
     
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

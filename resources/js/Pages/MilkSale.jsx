@@ -168,7 +168,7 @@ export default function MilkSale() {
                                     <label htmlFor="sale_amount" className="block text-sm font-medium text-gray-700 mb-2">
                                         <div className="flex items-center space-x-2">
                                             <DollarSign className="w-4 h-4 text-gray-400" />
-                                            <span>Sale Amount (Rs.)</span>
+                                            <span>Sale Amount ($)</span>
                                         </div>
                                     </label>
                                     <input
@@ -275,7 +275,7 @@ export default function MilkSale() {
                                                     Total Sale Amount (This Month)
                                                 </dt>
                                                 <dd className="text-2xl font-bold text-green-600">
-                                                    Rs. {parseFloat(monthlyTotals?.total_amount || 0).toFixed(2)}
+                                                    ${parseFloat(monthlyTotals?.total_amount || 0).toFixed(2)}
                                                 </dd>
                                             </dl>
                                         </div>
@@ -318,7 +318,7 @@ export default function MilkSale() {
                                                 Milk (KG)
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Amount (Rs.)
+                                                Amount ($)
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Price/KG
@@ -344,10 +344,10 @@ export default function MilkSale() {
                                                             {parseFloat(sale.milk_kg).toFixed(2)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            Rs. {parseFloat(sale.sale_amount).toFixed(2)}
+                                                            ${parseFloat(sale.sale_amount).toFixed(2)}
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                            Rs. {pricePerKg}
+                                                            ${pricePerKg}
                                                         </td>
                                                         <td className="px-6 py-4 text-sm text-gray-500">
                                                             {sale.notes || '-'}
@@ -432,7 +432,7 @@ export default function MilkSale() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Sale Amount (Rs.)
+                                        Sale Amount ($)
                                     </label>
                                     <input
                                         type="number"

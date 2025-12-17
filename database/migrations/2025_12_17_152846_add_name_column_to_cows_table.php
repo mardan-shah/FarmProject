@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
+        Schema::table('cows', function (Blueprint $table) {
+            if (!Schema::hasColumn('cows', 'name')) {
+                $table->string('name')->nullable()->after('cow_number');
+            }
         });
     }
 
@@ -22,6 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::table('cows', function (Blueprint $table) {
+            $table->dropColumn('name');
+        });
     }
 };

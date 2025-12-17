@@ -4,7 +4,12 @@ import { Head, usePage, Link } from '@inertiajs/react';
 import { TrendingUp, DollarSign, Users, AlertCircle, Droplet, ShoppingCart, PlusCircle, Calendar } from 'lucide-react';
 
 export default function Dashboard() {
-    const { todayProduction, todaySales, recentProductions } = usePage().props;
+    const { todayProduction, todaySales, recentProductions, totalCows, totalExpenses, todayNetProfit, todayExpenses } = usePage().props;
+
+    // Calculate profit margin
+    const todayTotalSales = todaySales ? parseFloat(todaySales.sale_amount) : 0;
+    const todayTotalExpenses = todayExpenses ? parseFloat(todayExpenses) : 0;
+    const profitMargin = todayTotalSales > 0 ? ((todayNetProfit / todayTotalSales) * 100) : 0;
 
     const stats = [
         {
@@ -18,7 +23,7 @@ export default function Dashboard() {
         },
         {
             name: "Today's Sales",
-            value: todaySales ? `Rs. ${parseFloat(todaySales.sale_amount).toFixed(2)}` : "Rs. 0",
+            value: todaySales ? `$${parseFloat(todaySales.sale_amount).toFixed(2)}` : "$0",
             change: todaySales ? "Recorded" : "Not recorded",
             changeType: todaySales ? "increase" : "neutral",
             icon: DollarSign,
@@ -27,21 +32,30 @@ export default function Dashboard() {
         },
         {
             name: "Total Cows",
-            value: "45",
-            change: "+2",
+            value: totalCows ? totalCows.toString() : "0",
+            change: "Active",
             changeType: "increase",
             icon: Users,
             iconBg: "bg-purple-50",
             iconColor: "text-purple-600"
         },
         {
-            name: "Today's Expenses",
-            value: "Rs. 120",
-            change: "+5.1%",
-            changeType: "increase",
-            icon: AlertCircle,
-            iconBg: "bg-orange-50",
-            iconColor: "text-orange-600"
+            name: "Total Expenses",
+            value: totalExpenses ? `$${parseFloat(totalExpenses).toFixed(2)}` : "$0",
+            change: "All time",
+            changeType: "decrease",
+            icon: ShoppingCart,
+            iconBg: "bg-red-50",
+            iconColor: "text-red-600"
+        },
+        {
+            name: "Today's Net Profit",
+            value: todayNetProfit !== null ? `$${parseFloat(todayNetProfit).toFixed(2)}` : "$0",
+            change: `Sales: $${todayTotalSales.toFixed(2)} - Expenses: $${todayTotalExpenses.toFixed(2)} | Margin: ${profitMargin.toFixed(1)}%`,
+            changeType: todayNetProfit >= 0 ? "increase" : "decrease",
+            icon: TrendingUp,
+            iconBg: "bg-yellow-50",
+            iconColor: "text-yellow-600"
         }
     ];
 
@@ -118,10 +132,10 @@ export default function Dashboard() {
                         <h2 className="text-lg font-semibold opacity-90">Today's Net Profit</h2>
                         <DollarSign className="h-8 w-8 opacity-80" />
                     </div>
-                    <p className="text-4xl font-bold mb-2">Rs. 330</p>
-                    <p className="text-sm opacity-90">Sales: Rs. 450 - Expenses: Rs. 120</p>
+                    <p className="text-4xl font-bold mb-2">{todayNetProfit !== null ? `$${parseFloat(todayNetProfit).toFixed(2)}` : "$0"}</p>
+                    <p className="text-sm opacity-90">Sales: ${todayTotalSales.toFixed(2)} - Expenses: ${todayTotalExpenses.toFixed(2)}</p>
                     <div className="mt-4 pt-4 border-t border-green-400">
-                        <p className="text-sm font-medium">Profit Margin: 73.3%</p>
+                        <p className="text-sm font-medium">Profit Margin: {profitMargin.toFixed(1)}%</p>
                     </div>
                 </div>
             </div>
