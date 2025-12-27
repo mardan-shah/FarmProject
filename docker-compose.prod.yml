@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: farm-app:latest
+    container_name: farm_app
+    restart: always
+    ports:
+      - "8001:80"
+    environment:
+      APP_ENV: production
+      APP_DEBUG: true
+      APP_KEY: ${APP_KEY}
+      DB_CONNECTION: mysql
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./.env:/var/www/html/.env
+      - ./storage:/var/www/html/storage
+    # No depends_on needed for remote DB
+    # networks: # Network not strictly needed if only connecting outbound, but good practice to keep default or bridge.
