@@ -28,4 +28,4 @@ cmds = [
 # This command runs when the container starts.
 # NOTE: We use 'php artisan serve' for simplicity and reliability in Nixpacks.
 # It listens on 0.0.0.0 so external traffic can reach it.
-cmd = "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=80"
+cmd = "php artisan migrate --force && php artisan queue:work --daemon & php artisan serve --host=0.0.0.0 --port=80"
