@@ -1,0 +1,31 @@
+# nixpacks.toml
+
+[phases.setup]
+# We explicitly request PHP 8.2 and the specific extensions your app needs
+nixPkgs = [
+    "php82",
+    "php82Extensions.pdo_mysql",
+    "php82Extensions.gd",
+    "php82Extensions.bcmath",
+    "php82Extensions.zip",
+    "php82Extensions.fileinfo",
+    "php82Extensions.tokenizer",
+    "php82Extensions.xml",
+    "nodejs_20",
+    "git"
+]
+
+[phases.build]
+# These run during the build process
+cmds = [
+    "mkdir -p storage/framework/{sessions,views,cache}",
+    "chmod -R 775 storage bootstrap/cache",
+    "npm ci && npm run build",
+    "composer install --no-dev --optimize-autoloader --ignore-platform-reqs"
+]
+
+[start]
+# This command runs when the container starts.
+# NOTE: We use 'php artisan serve' for simplicity and reliability in Nixpacks.
+# It listens on 0.0.0.0 so external traffic can reach it.
+cmd = "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=80"
