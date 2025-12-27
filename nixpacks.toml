@@ -1,4 +1,5 @@
 # nixpacks.toml
+
 [phases.setup]
 nixPkgs = [
     "php82",
@@ -12,8 +13,9 @@ nixPkgs = [
     "php82Extensions.xml",
     "php82Extensions.curl",
     "php82Extensions.mbstring",
-    "nodejs_20",
-    "git"
+    "nodejs_22",
+    "git",
+    "unzip"  # Added unzip to prevent composer failures with zipped packages
 ]
 
 [phases.build]
@@ -21,8 +23,14 @@ cmds = [
     "mkdir -p storage/framework/{sessions,views,cache}",
     "chmod -R 775 storage bootstrap/cache",
     "npm ci && npm run build",
-    "php artisan storage:link --force"
+    # ADDED --no-scripts: Prevents Laravel from crashing during build
+    "composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-scripts",
+    "php artisan storage:link"
 ]
 
 [start]
-cmd = "php artisan migrate --force && php artisan optimize && (php artisan queue:work &) && php artisan serve --host=0.0.0.0 --port=8002"
+# 1. Migrate DB
+# 2. Run 'optimize' (This replaces the scripts we skipped in build)
+# 3. Start Queue in background
+# 4. Start Server
+cmd = "php artisan migrate --force && php artisan optimize && php artisan queue:work --daemon & php artisan serve --host=0.0.0.0 --port=8002"
