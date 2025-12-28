@@ -26,6 +26,10 @@ export default function Register() {
         <GuestLayout>
             <Head title="Register" />
 
+            <div className="mb-4 text-sm text-gray-600">
+                Note: This is the only time you can create an account.
+            </div>
+
             <form onSubmit={submit}>
                 <div>
                     <InputLabel htmlFor="name" value="Name" />

@@ -4,25 +4,33 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status, canResetPassword, canRegister }) {
     const { data, setData, post, processing, errors, reset } = useForm({
+        name: '',
         email: '',
         password: '',
+        password_confirmation: '',
     });
 
     const submit = (e) => {
         e.preventDefault();
 
-        post(route('login'), {
-            onFinish: () => reset('password'),
-        });
+        if (canRegister) {
+            post(route('register'), {
+                onFinish: () => reset('password', 'password_confirmation'),
+            });
+        } else {
+            post(route('login'), {
+                onFinish: () => reset('password'),
+            });
+        }
     };
 
     return (
         <GuestLayout>
-            <Head title="Farm Login" />
+            <Head title={canRegister ? "Register Admin" : "Farm Login"} />
 
             <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -39,7 +47,13 @@ export default function Login({ status, canResetPassword }) {
                 </div>
             )}
 
-            <form onSubmit={submit}>
+            {canRegister && (
+                <div className="mb-4 text-sm text-center text-red-600 font-medium">
+                    Note: This is the only time you can create an account.
+                </div>
+            )}
+
+            <form onSubmit={submit} autoComplete="on">
                 <div>
                     <InputLabel htmlFor="email" value="Email Address" />
 
@@ -49,10 +63,10 @@ export default function Login({ status, canResetPassword }) {
                         name="email"
                         value={data.email}
                         className="mt-1 block w-full"
-                        autoComplete="username"
-                        isFocused={true}
+                        autoComplete="email"
                         onChange={(e) => setData('email', e.target.value)}
                         placeholder="Enter your email"
+                        required
                     />
 
                     <InputError message={errors.email} className="mt-2" />
@@ -67,17 +81,45 @@ export default function Login({ status, canResetPassword }) {
                         name="password"
                         value={data.password}
                         className="mt-1 block w-full"
-                        autoComplete="current-password"
+                        autoComplete={canRegister ? "new-password" : "current-password"}
                         onChange={(e) => setData('password', e.target.value)}
                         placeholder="Enter your password"
+                        required
                     />
 
                     <InputError message={errors.password} className="mt-2" />
                 </div>
 
+                {canRegister && (
+                    <div className="mt-4">
+                        <InputLabel
+                            htmlFor="password_confirmation"
+                            value="Confirm Password"
+                        />
+
+                        <TextInput
+                            id="password_confirmation"
+                            type="password"
+                            name="password_confirmation"
+                            value={data.password_confirmation}
+                            className="mt-1 block w-full"
+                            autoComplete="new-password"
+                            onChange={(e) =>
+                                setData('password_confirmation', e.target.value)
+                            }
+                            required
+                        />
+
+                        <InputError
+                            message={errors.password_confirmation}
+                            className="mt-2"
+                        />
+                    </div>
+                )}
+
                 <div className="mt-6">
                     <PrimaryButton className="w-full justify-center" disabled={processing}>
-                        {processing ? 'Signing in...' : 'Sign In'}
+                        {processing ? 'Processing...' : (canRegister ? 'Register Admin' : 'Sign In')}
                     </PrimaryButton>
                 </div>
             </form>
