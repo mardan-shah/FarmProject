@@ -156,7 +156,7 @@ export default function DashboardLayout({ children, title }) {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="text-white text-lg font-bold">Mehmood Cattle</h1>
+                            <h1 className="text-white text-lg font-bold">ood Cattle</h1>
                             <p className="text-green-200 text-xs">Farm Management</p>
                         </div>
                     </div>
