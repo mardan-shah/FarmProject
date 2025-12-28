@@ -2,7 +2,7 @@ import React from 'react';
 import DashboardLayout from '../Layouts/DashboardLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
+import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2, Download } from 'lucide-react';
 
 export default function Expenses() {
     const { recentExpenses } = usePage().props;
@@ -108,6 +108,37 @@ export default function Expenses() {
 
     const removeExpenseRow = (index) => {
         setData('expenses', data.expenses.filter((_, i) => i !== index));
+    };
+
+    const downloadReport = async (period) => {
+        try {
+            const response = await fetch(`/expenses/report/${period}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `expenses-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            window.open(`/expenses/report/${period}`, '_blank');
+        }
     };
     const renderCommonExpenseForm = () => (
         <form onSubmit={submit} className="space-y-4">
@@ -346,6 +377,39 @@ export default function Expenses() {
                         {activeTab === 'electricity' && renderCommonExpenseForm()}
                         {activeTab === 'employee' && renderCommonExpenseForm()}
                         {activeTab === 'farm' && renderFarmExpenseForm()}
+                    </div>
+                </div>
+
+                {/* Reports Section */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <FileText className="w-5 h-5 text-green-600" />
+                            </div>
+                            <h2 className="text-lg font-semibold text-gray-900">Expense Reports</h2>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            {[
+                                { period: 'weekly', label: 'Weekly Report' },
+                                { period: 'monthly', label: 'Monthly Report' },
+                                { period: '3-month', label: '3-Month Report' },
+                                { period: '6-month', label: '6-Month Report' },
+                                { period: '12-month', label: '12-Month Report' },
+                            ].map((report) => (
+                                <button
+                                    key={report.period}
+                                    onClick={() => downloadReport(report.period)}
+                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center space-x-2"
+                                >
+                                    <Download className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm font-medium text-gray-700">{report.label}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

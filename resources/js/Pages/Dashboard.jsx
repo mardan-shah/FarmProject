@@ -4,12 +4,7 @@ import { Head, usePage, Link } from '@inertiajs/react';
 import { TrendingUp, DollarSign, Users, AlertCircle, Droplet, ShoppingCart, PlusCircle, Calendar } from 'lucide-react';
 
 export default function Dashboard() {
-    const { todayProduction, todaySales, recentProductions, totalCows, totalExpenses, todayNetProfit, todayExpenses } = usePage().props;
-
-    // Calculate profit margin
-    const todayTotalSales = todaySales ? parseFloat(todaySales.sale_amount) : 0;
-    const todayTotalExpenses = todayExpenses ? parseFloat(todayExpenses) : 0;
-    const profitMargin = todayTotalSales > 0 ? ((todayNetProfit / todayTotalSales) * 100) : 0;
+    const { todayProduction, todaySales, recentProductions, totalCows, totalExpenses, todayNetProfit } = usePage().props;
 
     const stats = [
         {
@@ -51,7 +46,7 @@ export default function Dashboard() {
         {
             name: "Today's Net Profit",
             value: todayNetProfit !== null ? `$${parseFloat(todayNetProfit).toFixed(2)}` : "$0",
-            change: `Sales: $${todayTotalSales.toFixed(2)} - Expenses: $${todayTotalExpenses.toFixed(2)} | Margin: ${profitMargin.toFixed(1)}%`,
+            change: todayNetProfit >= 0 ? "Profit" : "Loss",
             changeType: todayNetProfit >= 0 ? "increase" : "decrease",
             icon: TrendingUp,
             iconBg: "bg-yellow-50",
@@ -132,10 +127,10 @@ export default function Dashboard() {
                         <h2 className="text-lg font-semibold opacity-90">Today's Net Profit</h2>
                         <DollarSign className="h-8 w-8 opacity-80" />
                     </div>
-                    <p className="text-4xl font-bold mb-2">{todayNetProfit !== null ? `$${parseFloat(todayNetProfit).toFixed(2)}` : "$0"}</p>
-                    <p className="text-sm opacity-90">Sales: ${todayTotalSales.toFixed(2)} - Expenses: ${todayTotalExpenses.toFixed(2)}</p>
+                    <p className="text-4xl font-bold mb-2">$330</p>
+                    <p className="text-sm opacity-90">Sales: $450 - Expenses: $120</p>
                     <div className="mt-4 pt-4 border-t border-green-400">
-                        <p className="text-sm font-medium">Profit Margin: {profitMargin.toFixed(1)}%</p>
+                        <p className="text-sm font-medium">Profit Margin: 73.3%</p>
                     </div>
                 </div>
             </div>

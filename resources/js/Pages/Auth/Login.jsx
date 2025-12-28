@@ -39,7 +39,7 @@ export default function Login({ status, canResetPassword }) {
                 </div>
             )}
 
-            <form onSubmit={submit} autoComplete="on">
+            <form onSubmit={submit}>
                 <div>
                     <InputLabel htmlFor="email" value="Email Address" />
 
@@ -49,7 +49,8 @@ export default function Login({ status, canResetPassword }) {
                         name="email"
                         value={data.email}
                         className="mt-1 block w-full"
-                        autoComplete="email"
+                        autoComplete="username"
+                        isFocused={true}
                         onChange={(e) => setData('email', e.target.value)}
                         placeholder="Enter your email"
                     />

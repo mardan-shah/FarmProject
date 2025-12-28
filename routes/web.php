@@ -8,13 +8,17 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PendingPaymentController;
 use App\Http\Controllers\CowController;
 use App\Http\Controllers\DailyFeedController;
-use App\Http\Controllers\SettingsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return Inertia::render('Welcome', [
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
+        'laravelVersion' => Application::VERSION,
+        'phpVersion' => PHP_VERSION,
+    ]);
 });
 
 Route::get('/api/health', function () {
@@ -56,12 +60,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/pending-payments', [PendingPaymentController::class, 'index'])->name('pending-payments');
     Route::post('/pending-payments', [PendingPaymentController::class, 'store'])->name('pending-payments.store');
     Route::delete('/pending-payments/{id}', [PendingPaymentController::class, 'destroy'])->name('pending-payments.destroy');
-    
-    Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
-    Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile.update');
-    Route::put('/settings/credentials', [SettingsController::class, 'updateCredentials'])->name('settings.credentials.update');
-    Route::post('/users', [SettingsController::class, 'storeUser'])->name('users.store');
-    Route::delete('/users/{user}', [SettingsController::class, 'deleteUser'])->name('users.delete');
     
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

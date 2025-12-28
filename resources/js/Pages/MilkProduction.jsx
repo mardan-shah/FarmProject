@@ -33,8 +33,38 @@ export default function MilkProduction() {
     const downloadReport = async (period) => {
         setLoadingReport(period);
         try {
-            // Simulate PDF generation
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(`/milk-production/report/${period}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+
+            // Create blob from response
+            const blob = await response.blob();
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `milk-production-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            // Fallback to window.open for server-side errors
             window.open(`/milk-production/report/${period}`, '_blank');
         } finally {
             setLoadingReport(null);

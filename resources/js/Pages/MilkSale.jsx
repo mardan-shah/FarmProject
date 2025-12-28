@@ -86,8 +86,35 @@ export default function MilkSale() {
         }
     };
 
-    const downloadMonthlyReport = () => {
-        window.open('/milk-sale/report/monthly', '_blank');
+    const downloadReport = async (period) => {
+        try {
+            const response = await fetch(`/milk-sale/report/${period}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `milk-sale-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            window.open(`/milk-sale/report/${period}`, '_blank');
+        }
     };
 
     const isFormValid = data.sale_date && data.milk_kg && data.sale_amount;
@@ -284,13 +311,24 @@ export default function MilkSale() {
                             </div>
 
                             <div className="mt-6">
-                                <button
-                                    onClick={downloadMonthlyReport}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Download Monthly Report
-                                </button>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                    {[
+                                        { period: 'weekly', label: 'Weekly Report' },
+                                        { period: 'monthly', label: 'Monthly Report' },
+                                        { period: '3-month', label: '3-Month Report' },
+                                        { period: '6-month', label: '6-Month Report' },
+                                        { period: '12-month', label: '12-Month Report' },
+                                    ].map((report) => (
+                                        <button
+                                            key={report.period}
+                                            onClick={() => downloadReport(report.period)}
+                                            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center space-x-2"
+                                        >
+                                            <Download className="w-4 h-4 text-gray-500" />
+                                            <span className="text-sm font-medium text-gray-700">{report.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

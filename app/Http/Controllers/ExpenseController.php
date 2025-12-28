@@ -88,7 +88,71 @@ class ExpenseController extends Controller
 
     public function report($period)
     {
-        // For future PDF report generation
-        return response()->json(['message' => 'Report generation coming soon']);
+        $user = auth()->user();
+        $endDate = now();
+        $startDate = $this->getStartDateByPeriod($period, $endDate);
+        
+        $expenses = Expense::where('user_id', $user->id)
+            ->whereBetween('expense_date', [$startDate, $endDate])
+            ->orderBy('expense_date', 'asc')
+            ->get();
+
+        if ($expenses->isEmpty()) {
+            return redirect()->back()->with('error', 'No expense data found for the selected period.');
+        }
+
+        $reportData = [
+            'period' => $period,
+            'startDate' => $startDate->format('M d, Y'),
+            'endDate' => $endDate->format('M d, Y'),
+            'expenses' => $expenses,
+            'totalAmount' => $expenses->sum('amount'),
+            'expensesByType' => $expenses->groupBy('expense_type'),
+            'totalExpenses' => $expenses->count(),
+            'user' => $user,
+            'reportTitle' => $this->getReportTitle($period),
+        ];
+
+        $pdf = \PDF::loadView('reports.expenses', $reportData);
+        
+        $filename = 'expenses-' . $period . '-' . now()->format('Y-m-d') . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    private function getStartDateByPeriod($period, $endDate)
+    {
+        switch ($period) {
+            case 'weekly':
+                return $endDate->copy()->subDays(7);
+            case 'monthly':
+                return $endDate->copy()->subMonth();
+            case '3-month':
+                return $endDate->copy()->subMonths(3);
+            case '6-month':
+                return $endDate->copy()->subMonths(6);
+            case '12-month':
+                return $endDate->copy()->subYear();
+            default:
+                return $endDate->copy()->subMonth();
+        }
+    }
+
+    private function getReportTitle($period)
+    {
+        switch ($period) {
+            case 'weekly':
+                return 'Weekly Expenses Report';
+            case 'monthly':
+                return 'Monthly Expenses Report';
+            case '3-month':
+                return '3-Month Expenses Report';
+            case '6-month':
+                return '6-Month Expenses Report';
+            case '12-month':
+                return '12-Month Expenses Report';
+            default:
+                return 'Expenses Report';
+        }
     }
 }

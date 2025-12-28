@@ -33,10 +33,10 @@ class DashboardController extends Controller
         // Total expenses
         $totalExpenses = Expense::sum('amount');
 
-        // Today's net profit (today's total sales - today's total expenses)
+        // Today's net profit (today's sales - today's expenses)
         $todayExpenses = Expense::where('expense_date', Carbon::today())->sum('amount');
-        $todayTotalSales = MilkSale::where('sale_date', Carbon::today())->sum('sale_amount');
-        $todayNetProfit = $todayTotalSales - $todayExpenses;
+        $todayRevenue = $todaySales ? $todaySales->sale_amount : 0;
+        $todayNetProfit = $todayRevenue - $todayExpenses;
 
         return Inertia::render('Dashboard', [
             'todayProduction' => $todayProduction,
@@ -45,7 +45,6 @@ class DashboardController extends Controller
             'totalCows' => $totalCows,
             'totalExpenses' => $totalExpenses,
             'todayNetProfit' => $todayNetProfit,
-            'todayExpenses' => $todayExpenses,
         ]);
     }
 }
