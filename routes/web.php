@@ -8,6 +8,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PendingPaymentController;
 use App\Http\Controllers\CowController;
 use App\Http\Controllers\DailyFeedController;
+use App\Http\Controllers\SilageController;
+use App\Http\Controllers\DonationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -57,9 +59,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/daily-feed', [DailyFeedController::class, 'store'])->name('daily-feed.store');
     Route::delete('/daily-feed/{dailyFeed}', [DailyFeedController::class, 'destroy'])->name('daily-feed.destroy');
     
+    Route::get('/silage', [SilageController::class, 'index'])->name('silage');
+    Route::post('/silage', [SilageController::class, 'store'])->name('silage.store');
+    Route::delete('/silage/{silage}', [SilageController::class, 'destroy'])->name('silage.destroy');
+    
     Route::get('/pending-payments', [PendingPaymentController::class, 'index'])->name('pending-payments');
     Route::post('/pending-payments', [PendingPaymentController::class, 'store'])->name('pending-payments.store');
     Route::delete('/pending-payments/{id}', [PendingPaymentController::class, 'destroy'])->name('pending-payments.destroy');
+    
+    Route::get('/donations', [DonationController::class, 'index'])->name('donations');
+    Route::post('/donations', [DonationController::class, 'store'])->name('donations.store');
+    Route::put('/donations/{donation}', [DonationController::class, 'update'])->name('donations.update');
+    Route::delete('/donations/{donation}', [DonationController::class, 'destroy'])->name('donations.destroy');
     
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
