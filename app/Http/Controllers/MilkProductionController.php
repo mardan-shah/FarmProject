@@ -6,6 +6,7 @@ use App\Models\MilkProduction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MilkProductionController extends Controller
 {
@@ -64,7 +65,7 @@ class MilkProductionController extends Controller
             'reportTitle' => $this->getReportTitle($period),
         ];
 
-        $pdf = \PDF::loadView('reports.milk-production', $reportData);
+        $pdf = Pdf::loadView('reports.milk-production', $reportData);
         
         $filename = 'milk-production-' . $period . '-' . now()->format('Y-m-d') . '.pdf';
         

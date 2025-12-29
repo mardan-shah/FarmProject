@@ -1,9 +1,9 @@
 import React from 'react';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
+import InputError from '../../Components/InputError';
+import InputLabel from '../../Components/InputLabel';
+import PrimaryButton from '../../Components/PrimaryButton';
+import TextInput from '../../Components/TextInput';
+import GuestLayout from '../../Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword, canRegister }) {
@@ -33,6 +33,11 @@ export default function Login({ status, canResetPassword, canRegister }) {
             <Head title={canRegister ? "Register Admin" : "Farm Login"} />
 
             <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-white rounded-full shadow-lg overflow-hidden">
+                        <img src="/build/assets/farm.jpeg" alt="Farm Logo" className="w-full h-full object-cover" />
+                    </div>
+                </div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     Mehmood Cattle and Dairy Farm
                 </h1>

@@ -1,10 +1,10 @@
 import React from 'react';
-import ApplicationLogo from '@/Components/ApplicationLogo';
+import ApplicationLogo from '../Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0">
+        <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 pt-6 sm:justify-center sm:pt-0">
             <div>
                 <Link href="/">
                     <ApplicationLogo className="h-20 w-20 fill-current text-gray-500" />
