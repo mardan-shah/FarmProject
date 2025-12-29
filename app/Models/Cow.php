@@ -51,6 +51,11 @@ class Cow extends Model
         return $query->where('type', 'non-milk-producing');
     }
 
+    public function scopeChilds($query)
+    {
+        return $query->where('type', 'child');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', 'Active');

@@ -3,7 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
 export default function DashboardLayout({ children, title }) {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const { auth } = usePage().props;
@@ -145,18 +145,24 @@ export default function DashboardLayout({ children, title }) {
         <div className="min-h-screen bg-gray-50 flex">
             <Head title={title} />
 
+            {/* Mobile sidebar overlay */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
             <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-green-700 to-green-800 shadow-2xl transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
                 {/* Sidebar Header */}
                 <div className="flex flex-col items-center justify-center h-20 px-4 bg-green-900 border-b border-green-600">
                     <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                            <svg className="w-6 h-6 text-green-700" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM8 7a2 2 0 11-4 0 2 2 0 014 0zm8 8a6 6 0 01-12 0v-1a1 1 0 011-1h2a1 1 0 011 1v1a2 2 0 104 0v-1a1 1 0 011-1h2a1 1 0 011 1v1z"/>
-                            </svg>
+                        <div className="w-10 h-10 bg-white rounded-full overflow-hidden flex items-center justify-center">
+                            <img src="/build/assets/farm.jpeg" alt="Farm Logo" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                            <h1 className="text-white text-lg font-bold">Mehmood Cattle</h1>
+                            <h1 className="text-white text-md font-bold">Mehmood Dairy Farm</h1>
                             <p className="text-green-200 text-xs">Farm Management</p>
                         </div>
                     </div>
@@ -232,7 +238,7 @@ export default function DashboardLayout({ children, title }) {
             </div>
 
             {/* Main Content */}
-            <div className={`flex-1 flex flex-col ${sidebarOpen ? 'lg:ml-64' : ''} transition-all duration-300`}>
+            <div className="flex-1 flex flex-col lg:ml-0">
                 {/* Header */}
                 <header className="bg-white shadow-sm border-b border-gray-200">
                     <div className="px-4 sm:px-6 lg:px-8">
@@ -247,8 +253,14 @@ export default function DashboardLayout({ children, title }) {
                                 </svg>
                             </button>
 
-                            {/* Page Title */}
-                            <div className="flex items-center space-x-4">
+                            {/* Page Title - Mobile */}
+                            <div className="lg:hidden flex-1 text-center">
+                                <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+                                <p className="text-xs text-gray-500">Farm Management System</p>
+                            </div>
+
+                            {/* Page Title - Desktop */}
+                            <div className="hidden lg:flex items-center space-x-4">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
                                     <p className="text-sm text-gray-500">Farm Management System</p>
@@ -256,7 +268,7 @@ export default function DashboardLayout({ children, title }) {
                             </div>
 
                             {/* Header Actions */}
-                            <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2 lg:space-x-4">
                                 {/* Notifications */}
                                 <div className="relative notification-dropdown">
                                     <button
@@ -321,8 +333,8 @@ export default function DashboardLayout({ children, title }) {
                                     )}
                                 </div>
 
-                                {/* User Menu */}
-                                <div className="flex items-center space-x-3">
+                                {/* User Menu - Desktop Only */}
+                                <div className="hidden lg:flex items-center space-x-3">
                                     <div className="text-right">
                                         <p className="text-sm font-medium text-gray-900">{auth?.user?.name || 'Admin User'}</p>
                                         <p className="text-xs text-gray-500">Administrator</p>

@@ -8,6 +8,8 @@ export default function Cows() {
     const [activeTab, setActiveTab] = useState('milk-producing');
     const [showAddForm, setShowAddForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [editingCow, setEditingCow] = useState(null);
+    const [viewingCow, setViewingCow] = useState(null);
     const [newCow, setNewCow] = useState({ 
         number: '', 
         name: '', 
@@ -20,21 +22,32 @@ export default function Cows() {
     
     const milkProducingCows = props.milkProducingCows || [];
     const nonMilkProducingCows = props.nonMilkProducingCows || [];
+    const childs = props.childs || [];
     
-    const cows = activeTab === 'milk-producing' ? milkProducingCows : nonMilkProducingCows;
+    const cows = activeTab === 'milk-producing' ? milkProducingCows : 
+                 activeTab === 'non-milk-producing' ? nonMilkProducingCows : 
+                 childs;
 
     const handleAddCow = () => {
-        if (newCow.number && newCow.type) {
-            router.post('/cows', {
+        console.log('handleAddCow called');
+        console.log('newCow data:', newCow);
+        
+        if (newCow.number && (activeTab === 'childs' ? true : newCow.type)) {
+            const postData = {
                 number: newCow.number,
                 name: newCow.name,
                 notes: newCow.notes,
-                type: newCow.type,
-                is_pregnant: newCow.isPregnant,
-                pregnancy_date: newCow.isPregnant ? newCow.pregnancyDate : null,
-                pregnancy_method: newCow.isPregnant ? newCow.pregnancyMethod : null,
-            }, {
+                type: activeTab === 'childs' ? 'child' : newCow.type,
+                is_pregnant: activeTab === 'childs' ? false : newCow.isPregnant,
+                pregnancy_date: activeTab === 'childs' ? null : (newCow.isPregnant ? newCow.pregnancyDate : null),
+                pregnancy_method: activeTab === 'childs' ? null : (newCow.isPregnant ? newCow.pregnancyMethod : null),
+            };
+            
+            console.log('Posting data:', postData);
+            
+            router.post('/cows', postData, {
                 onSuccess: () => {
+                    console.log('Cow added successfully');
                     setNewCow({ 
                         number: '', 
                         name: '', 
@@ -45,14 +58,56 @@ export default function Cows() {
                         pregnancyMethod: ''
                     });
                     setShowAddForm(false);
+                },
+                onError: (errors) => {
+                    console.error('Error adding cow:', errors);
                 }
             });
+        } else {
+            console.log('Validation failed - missing required fields');
+            console.log('Number:', newCow.number);
+            console.log('Type:', newCow.type);
         }
     };
 
     const handleDeleteCow = (cowId) => {
         if (confirm('Are you sure you want to delete this cow?')) {
             router.delete(`/cows/${cowId}`);
+        }
+    };
+
+    const handleViewCow = (cow) => {
+        setViewingCow(cow);
+    };
+
+    const handleEditCow = (cow) => {
+        setEditingCow({
+            id: cow.id,
+            number: cow.number,
+            name: cow.name || '',
+            notes: cow.notes || '',
+            type: cow.type,
+            isPregnant: cow.is_pregnant,
+            pregnancyDate: cow.pregnancy_date || '',
+            pregnancyMethod: cow.pregnancy_method || ''
+        });
+    };
+
+    const handleUpdateCow = () => {
+        if (editingCow.number && editingCow.type) {
+            router.put(`/cows/${editingCow.id}`, {
+                number: editingCow.number,
+                name: editingCow.name,
+                notes: editingCow.notes,
+                type: editingCow.type,
+                is_pregnant: editingCow.isPregnant,
+                pregnancy_date: editingCow.isPregnant ? editingCow.pregnancyDate : null,
+                pregnancy_method: editingCow.isPregnant ? editingCow.pregnancyMethod : null,
+            }, {
+                onSuccess: () => {
+                    setEditingCow(null);
+                }
+            });
         }
     };
 
@@ -140,6 +195,20 @@ export default function Cows() {
                                     {nonMilkProducingCows.length}
                                 </span>
                             </button>
+                            <button
+                                onClick={() => setActiveTab('childs')}
+                                className={`flex items-center px-6 py-3 border-b-2 font-medium text-sm transition-colors ${
+                                    activeTab === 'childs'
+                                        ? 'border-purple-500 text-purple-600 bg-purple-50'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                }`}
+                            >
+                                <Baby className="w-4 h-4 mr-2" />
+                                Childs
+                                <span className="ml-2 bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs">
+                                    {childs.length}
+                                </span>
+                            </button>
                         </nav>
                     </div>
 
@@ -151,7 +220,7 @@ export default function Cows() {
                                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-lg font-semibold text-gray-900">
-                                            Add New {activeTab === 'milk-producing' ? 'Milk Producing' : 'Non-Milk Producing'} Cow
+                                            Add New {activeTab === 'milk-producing' ? 'Milk Producing' : activeTab === 'non-milk-producing' ? 'Non-Milk Producing' : 'Child'} Cow
                                         </h3>
                                         <button
                                             onClick={() => setShowAddForm(false)}
@@ -203,6 +272,191 @@ export default function Cows() {
                                             />
                                         </div>
                                         
+                                        {activeTab !== 'childs' && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Pregnancy Status
+                                                    </label>
+                                                    <div className="flex items-center space-x-4">
+                                                        <label className="flex items-center">
+                                                            <input
+                                                                type="radio"
+                                                                name="pregnancy"
+                                                                checked={!newCow.isPregnant}
+                                                                onChange={() => setNewCow({...newCow, isPregnant: false, pregnancyDate: '', pregnancyMethod: ''})}
+                                                                className="mr-2"
+                                                            />
+                                                            <span className="text-sm text-gray-700">Not Pregnant</span>
+                                                        </label>
+                                                        <label className="flex items-center">
+                                                            <input
+                                                                type="radio"
+                                                                name="pregnancy"
+                                                                checked={newCow.isPregnant}
+                                                                onChange={() => setNewCow({...newCow, isPregnant: true})}
+                                                                className="mr-2"
+                                                            />
+                                                            <span className="text-sm text-gray-700">Pregnant</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                
+                                                {newCow.isPregnant && (
+                                                    <>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                Pregnancy Date <span className="text-red-500">*</span>
+                                                            </label>
+                                                            <input
+                                                                type="date"
+                                                                value={newCow.pregnancyDate}
+                                                                onChange={(e) => setNewCow({...newCow, pregnancyDate: e.target.value})}
+                                                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                                            />
+                                                        </div>
+                                                        
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                Pregnancy Method <span className="text-red-500">*</span>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={newCow.pregnancyMethod}
+                                                                onChange={(e) => setNewCow({...newCow, pregnancyMethod: e.target.value})}
+                                                                placeholder="e.g., Natural, Injection, AI"
+                                                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
+                                        <button
+                                            onClick={() => setShowAddForm(false)}
+                                            className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleAddCow}
+                                            disabled={!newCow.number || (activeTab !== 'childs' && newCow.isPregnant && (!newCow.pregnancyDate || !newCow.pregnancyMethod))}
+                                            className="w-full sm:w-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors"
+                                        >
+                                            Save Cow
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* View Cow Modal */}
+                        {viewingCow && (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-semibold text-gray-900">Cow Details</h3>
+                                        <button
+                                            onClick={() => setViewingCow(null)}
+                                            className="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Cow Number</label>
+                                            <p className="text-gray-900">{viewingCow.number}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Cow Name</label>
+                                            <p className="text-gray-900">{viewingCow.name || '-'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                            <p className="text-gray-900">{viewingCow.type === 'milk-producing' ? 'Milk Producing' : 'Non-Milk Producing'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                            <p className="text-gray-900">{viewingCow.status}</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Pregnancy Status</label>
+                                            <p className="text-gray-900">
+                                                {viewingCow.is_pregnant ? 
+                                                    `Pregnant (${viewingCow.pregnancy_date} • ${viewingCow.pregnancy_method})` : 
+                                                    'Not Pregnant'
+                                                }
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                            <p className="text-gray-900">{viewingCow.notes || '-'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Edit Cow Form */}
+                        {editingCow && (
+                            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-semibold text-gray-900">Edit Cow</h3>
+                                        <button
+                                            onClick={() => setEditingCow(null)}
+                                            className="text-gray-400 hover:text-gray-600"
+                                        >
+                                            <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Cow Number <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editingCow.number}
+                                                onChange={(e) => setEditingCow({...editingCow, number: e.target.value})}
+                                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Cow Name (Optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editingCow.name}
+                                                onChange={(e) => setEditingCow({...editingCow, name: e.target.value})}
+                                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Notes (Optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editingCow.notes}
+                                                onChange={(e) => setEditingCow({...editingCow, notes: e.target.value})}
+                                                className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                            />
+                                        </div>
+                                        
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 Pregnancy Status
@@ -211,9 +465,9 @@ export default function Cows() {
                                                 <label className="flex items-center">
                                                     <input
                                                         type="radio"
-                                                        name="pregnancy"
-                                                        checked={!newCow.isPregnant}
-                                                        onChange={() => setNewCow({...newCow, isPregnant: false, pregnancyDate: '', pregnancyMethod: ''})}
+                                                        name="edit-pregnancy"
+                                                        checked={!editingCow.isPregnant}
+                                                        onChange={() => setEditingCow({...editingCow, isPregnant: false, pregnancyDate: '', pregnancyMethod: ''})}
                                                         className="mr-2"
                                                     />
                                                     <span className="text-sm text-gray-700">Not Pregnant</span>
@@ -221,9 +475,9 @@ export default function Cows() {
                                                 <label className="flex items-center">
                                                     <input
                                                         type="radio"
-                                                        name="pregnancy"
-                                                        checked={newCow.isPregnant}
-                                                        onChange={() => setNewCow({...newCow, isPregnant: true})}
+                                                        name="edit-pregnancy"
+                                                        checked={editingCow.isPregnant}
+                                                        onChange={() => setEditingCow({...editingCow, isPregnant: true})}
                                                         className="mr-2"
                                                     />
                                                     <span className="text-sm text-gray-700">Pregnant</span>
@@ -231,7 +485,7 @@ export default function Cows() {
                                             </div>
                                         </div>
                                         
-                                        {newCow.isPregnant && (
+                                        {editingCow.isPregnant && (
                                             <>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -239,8 +493,8 @@ export default function Cows() {
                                                     </label>
                                                     <input
                                                         type="date"
-                                                        value={newCow.pregnancyDate}
-                                                        onChange={(e) => setNewCow({...newCow, pregnancyDate: e.target.value})}
+                                                        value={editingCow.pregnancyDate}
+                                                        onChange={(e) => setEditingCow({...editingCow, pregnancyDate: e.target.value})}
                                                         className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                                                     />
                                                 </div>
@@ -249,33 +503,31 @@ export default function Cows() {
                                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                                         Pregnancy Method <span className="text-red-500">*</span>
                                                     </label>
-                                                    <select
-                                                        value={newCow.pregnancyMethod}
-                                                        onChange={(e) => setNewCow({...newCow, pregnancyMethod: e.target.value})}
+                                                    <input
+                                                        type="text"
+                                                        value={editingCow.pregnancyMethod}
+                                                        onChange={(e) => setEditingCow({...editingCow, pregnancyMethod: e.target.value})}
+                                                        placeholder="e.g., Natural, Injection, AI"
                                                         className="block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                                    >
-                                                        <option value="">Select Method</option>
-                                                        <option value="injection">Injection</option>
-                                                        <option value="natural">Natural</option>
-                                                    </select>
+                                                    />
                                                 </div>
                                             </>
                                         )}
                                     </div>
                                     
-                                    <div className="flex justify-end space-x-3">
+                                    <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-3 space-y-2 sm:space-y-0">
                                         <button
-                                            onClick={() => setShowAddForm(false)}
-                                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                            onClick={() => setEditingCow(null)}
+                                            className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                                         >
                                             Cancel
                                         </button>
                                         <button
-                                            onClick={handleAddCow}
-                                            disabled={!newCow.number || (newCow.isPregnant && (!newCow.pregnancyDate || !newCow.pregnancyMethod))}
-                                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors"
+                                            onClick={handleUpdateCow}
+                                            disabled={!editingCow.number || (editingCow.isPregnant && (!editingCow.pregnancyDate || !editingCow.pregnancyMethod))}
+                                            className="w-full sm:w-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg transition-colors"
                                         >
-                                            Save Cow
+                                            Update Cow
                                         </button>
                                     </div>
                                 </div>
@@ -360,11 +612,17 @@ export default function Cows() {
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <div className="flex items-center space-x-3">
-                                                            <button className="text-purple-600 hover:text-purple-900 flex items-center space-x-1">
+                                                            <button 
+                                                                onClick={() => handleViewCow(cow)}
+                                                                className="text-purple-600 hover:text-purple-900 flex items-center space-x-1"
+                                                            >
                                                                 <Eye className="w-4 h-4" />
                                                                 <span>View</span>
                                                             </button>
-                                                            <button className="text-blue-600 hover:text-blue-900 flex items-center space-x-1">
+                                                            <button 
+                                                                onClick={() => handleEditCow(cow)}
+                                                                className="text-blue-600 hover:text-blue-900 flex items-center space-x-1"
+                                                            >
                                                                 <Edit2 className="w-4 h-4" />
                                                                 <span>Edit</span>
                                                             </button>
@@ -385,14 +643,16 @@ export default function Cows() {
                                                     <div className="flex flex-col items-center">
                                                         {activeTab === 'milk-producing' ? (
                                                             <Milk className="w-12 h-12 text-gray-400 mb-4" />
-                                                        ) : (
+                                                        ) : activeTab === 'non-milk-producing' ? (
                                                             <AlertCircle className="w-12 h-12 text-gray-400 mb-4" />
+                                                        ) : (
+                                                            <Baby className="w-12 h-12 text-gray-400 mb-4" />
                                                         )}
                                                         <p className="text-gray-500">
-                                                            No {activeTab === 'milk-producing' ? 'milk producing' : 'non-milk producing'} cows found
+                                                            No {activeTab === 'milk-producing' ? 'milk producing' : activeTab === 'non-milk-producing' ? 'non-milk producing' : 'child'} cows found
                                                         </p>
                                                         <p className="text-sm text-gray-400 mt-1">
-                                                            {searchTerm ? 'Try adjusting your search' : `Add your first ${activeTab === 'milk-producing' ? 'milk producing' : 'non-milk producing'} cow to get started`}
+                                                            {searchTerm ? 'Try adjusting your search' : `Add your first ${activeTab === 'milk-producing' ? 'milk producing' : activeTab === 'non-milk-producing' ? 'non-milk producing' : 'child'} cow to get started`}
                                                         </p>
                                                     </div>
                                                 </td>

@@ -12,10 +12,12 @@ class CowController extends Controller
     {
         $milkProducingCows = Cow::milkProducing()->active()->get();
         $nonMilkProducingCows = Cow::nonMilkProducing()->active()->get();
+        $childs = Cow::childs()->active()->get();
         
         return Inertia::render('Cows', [
             'milkProducingCows' => $milkProducingCows,
             'nonMilkProducingCows' => $nonMilkProducingCows,
+            'childs' => $childs,
         ]);
     }
 
@@ -25,18 +27,23 @@ class CowController extends Controller
             'number' => 'required|string|max:255|unique:cows,cow_number',
             'name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
-            'type' => 'required|in:milk-producing,non-milk-producing',
+            'type' => 'required|in:milk-producing,non-milk-producing,child',
             'is_pregnant' => 'required|boolean',
-            'pregnancy_date' => 'required_if:is_pregnant,true|date',
-            'pregnancy_method' => 'required_if:is_pregnant,true|in:injection,natural',
+            'pregnancy_date' => 'nullable|required_if:is_pregnant,true|date',
+            'pregnancy_method' => 'nullable|required_if:is_pregnant,true|string|max:255',
         ]);
 
-        // Map 'number' to 'cow_number' for database
-        $cowData = $validated;
-        $cowData['cow_number'] = $validated['number'];
-        unset($cowData['number']);
-
-        Cow::create($cowData);
+        // Create cow with proper field mapping
+        Cow::create([
+            'cow_number' => $validated['number'],
+            'name' => $validated['name'],
+            'notes' => $validated['notes'],
+            'type' => $validated['type'],
+            'status' => 'Active', // Set default status
+            'is_pregnant' => $validated['is_pregnant'],
+            'pregnancy_date' => $validated['is_pregnant'] ? $validated['pregnancy_date'] : null,
+            'pregnancy_method' => $validated['is_pregnant'] ? $validated['pregnancy_method'] : null,
+        ]);
 
         return redirect()->back()->with('success', 'Cow added successfully!');
     }
@@ -47,18 +54,22 @@ class CowController extends Controller
             'number' => 'required|string|max:255|unique:cows,cow_number,' . $cow->id,
             'name' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
-            'type' => 'required|in:milk-producing,non-milk-producing',
+            'type' => 'required|in:milk-producing,non-milk-producing,child',
             'is_pregnant' => 'required|boolean',
-            'pregnancy_date' => 'required_if:is_pregnant,true|date',
-            'pregnancy_method' => 'required_if:is_pregnant,true|in:injection,natural',
+            'pregnancy_date' => 'nullable|required_if:is_pregnant,true|date',
+            'pregnancy_method' => 'nullable|required_if:is_pregnant,true|string|max:255',
         ]);
 
-        // Map 'number' to 'cow_number' for database
-        $cowData = $validated;
-        $cowData['cow_number'] = $validated['number'];
-        unset($cowData['number']);
-
-        $cow->update($cowData);
+        // Create cow with proper field mapping
+        $cow->update([
+            'cow_number' => $validated['number'],
+            'name' => $validated['name'],
+            'notes' => $validated['notes'],
+            'type' => $validated['type'],
+            'is_pregnant' => $validated['is_pregnant'],
+            'pregnancy_date' => $validated['is_pregnant'] ? $validated['pregnancy_date'] : null,
+            'pregnancy_method' => $validated['is_pregnant'] ? $validated['pregnancy_method'] : null,
+        ]);
 
         return redirect()->back()->with('success', 'Cow updated successfully!');
     }
