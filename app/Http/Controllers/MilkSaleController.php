@@ -43,8 +43,8 @@ class MilkSaleController extends Controller
     {
         $validated = $request->validate([
             'sale_date' => 'required|date|before_or_equal:today',
-            'milk_kg' => 'required|numeric|min:0|max:10000',
-            'sale_amount' => 'required|numeric|min:0|max:100000',
+            'milk_kg' => 'required|numeric|min:0|max:10000000',
+            'sale_amount' => 'required|numeric|min:0|max:10000000',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -63,8 +63,8 @@ class MilkSaleController extends Controller
 
         $validated = $request->validate([
             'sale_date' => 'required|date|before_or_equal:today',
-            'milk_kg' => 'required|numeric|min:0|max:10000',
-            'sale_amount' => 'required|numeric|min:0|max:100000',
+            'milk_kg' => 'required|numeric|min:0|max:10000000',
+            'sale_amount' => 'required|numeric|min:0|max:10000000',
             'notes' => 'nullable|string|max:1000',
         ]);
 

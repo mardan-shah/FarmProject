@@ -395,6 +395,14 @@ export default function Cows() {
                                                 }
                                             </p>
                                         </div>
+                                        {viewingCow.is_pregnant && viewingCow.pregnant_days !== null && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Pregnant Days</label>
+                                                <p className="text-gray-900 font-semibold text-green-600">
+                                                    {typeof viewingCow.pregnant_days === 'number' ? viewingCow.pregnant_days + ' days' : viewingCow.pregnant_days}
+                                                </p>
+                                            </div>
+                                        )}
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                                             <p className="text-gray-900">{viewingCow.notes || '-'}</p>

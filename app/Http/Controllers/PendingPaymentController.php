@@ -26,8 +26,8 @@ class PendingPaymentController extends Controller
         $validated = $request->validate([
             'customer_name' => 'required|string|max:255',
             'payment_date' => 'required|date|before_or_equal:today',
-            'quantity' => 'required|numeric|min:0|max:10000',
-            'amount' => 'required|numeric|min:0|max:100000',
+            'quantity' => 'required|numeric|min:0|max:10000000',
+            'amount' => 'required|numeric|min:0|max:10000000',
             'notes' => 'nullable|string|max:1000',
         ]);
 

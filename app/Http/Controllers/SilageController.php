@@ -23,7 +23,7 @@ class SilageController extends Controller
     {
         $validated = $request->validate([
             'date' => 'required|date',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0|max:10000000',
             'type' => 'required|in:made,used',
         ]);
 

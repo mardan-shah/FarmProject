@@ -39,7 +39,29 @@ class Cow extends Model
     }
 
     // Append 'number' to appends for JSON serialization
-    protected $appends = ['number'];
+    protected $appends = ['number', 'pregnant_days'];
+
+    public function getPregnantDaysAttribute()
+    {
+        if (!$this->is_pregnant || !$this->pregnancy_date) {
+            return null;
+        }
+        
+        $totalDays = $this->pregnancy_date->startOfDay()->diffInDays(now()->startOfDay());
+        
+        if ($totalDays < 30) {
+            return $totalDays;
+        } else {
+            $months = intdiv($totalDays, 30);
+            $days = $totalDays % 30;
+            
+            if ($days == 0) {
+                return $months . ' month' . ($months > 1 ? 's' : '');
+            } else {
+                return $months . ' month' . ($months > 1 ? 's' : '') . ' and ' . $days . ' day' . ($days > 1 ? 's' : '');
+            }
+        }
+    }
 
     public function scopeMilkProducing($query)
     {

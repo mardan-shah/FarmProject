@@ -37,6 +37,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['au
 Route::middleware('auth')->group(function () {
     Route::get('/milk-production', [MilkProductionController::class, 'index'])->name('milk-production');
     Route::post('/milk-production', [MilkProductionController::class, 'store'])->name('milk-production.store');
+    Route::delete('/milk-production/{milkProduction}', [MilkProductionController::class, 'destroy'])->name('milk-production.destroy');
     Route::get('/milk-production/report/{period}', [MilkProductionController::class, 'report'])->name('milk-production.report');
     
     Route::get('/milk-sale', [MilkSaleController::class, 'index'])->name('milk-sale');

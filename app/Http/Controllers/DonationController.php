@@ -20,7 +20,7 @@ class DonationController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0|max:10000000',
             'date' => 'required|date',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -33,7 +33,7 @@ class DonationController extends Controller
     public function update(Request $request, Donation $donation)
     {
         $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0|max:10000000',
             'date' => 'required|date',
             'notes' => 'nullable|string|max:1000',
         ]);

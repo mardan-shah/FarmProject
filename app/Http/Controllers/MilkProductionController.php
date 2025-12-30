@@ -27,7 +27,7 @@ class MilkProductionController extends Controller
     {
         $validated = $request->validate([
             'production_date' => 'required|date|before_or_equal:today',
-            'milk_kg' => 'required|numeric|min:0|max:10000',
+            'milk_kg' => 'required|numeric|min:0|max:10000000',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -36,6 +36,17 @@ class MilkProductionController extends Controller
         MilkProduction::create($validated);
 
         return redirect()->back()->with('success', 'Milk production recorded successfully!');
+    }
+
+    public function destroy(MilkProduction $milkProduction)
+    {
+        if ($milkProduction->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $milkProduction->delete();
+
+        return redirect()->back()->with('success', 'Milk production record deleted successfully!');
     }
 
     public function report($period)

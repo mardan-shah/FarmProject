@@ -2,12 +2,13 @@ import React, { useEffect } from 'react';
 import DashboardLayout from '../Layouts/DashboardLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2, Download } from 'lucide-react';
+import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Expenses() {
     const { recentExpenses } = usePage().props;
     const [activeTab, setActiveTab] = useState('petrol');
     const [successMessage, setSuccessMessage] = useState('');
+    const [perPage, setPerPage] = useState(20);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         expenses: [{
@@ -165,6 +166,15 @@ export default function Expenses() {
             window.open(`/expenses/report/${period}`, '_blank');
         }
     };
+    const handlePerPageChange = (newPerPage) => {
+        setPerPage(newPerPage);
+        router.get(route('expenses.index'), { per_page: newPerPage }, { preserveState: true });
+    };
+
+    const showAll = () => {
+        router.get(route('expenses.index'), { per_page: 1000 }, { preserveState: true });
+    };
+
     const renderCommonExpenseForm = () => (
         <form onSubmit={submit} className="space-y-4">
             {data.expenses.map((expense, index) => (
@@ -451,11 +461,31 @@ export default function Expenses() {
                 {/* Recent Expenses Records */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                        <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-orange-100 rounded-lg">
-                                <FileText className="w-5 h-5 text-orange-600" />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-2 bg-orange-100 rounded-lg">
+                                    <FileText className="w-5 h-5 text-orange-600" />
+                                </div>
+                                <h2 className="text-lg font-semibold text-gray-900">Recent Expense Records</h2>
                             </div>
-                            <h2 className="text-lg font-semibold text-gray-900">Recent Expense Records</h2>
+                            <div className="flex items-center space-x-3">
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => handlePerPageChange(e.target.value)}
+                                    className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                >
+                                    <option value="10">10 per page</option>
+                                    <option value="20">20 per page</option>
+                                    <option value="50">50 per page</option>
+                                    <option value="100">100 per page</option>
+                                </select>
+                                <button
+                                    onClick={showAll}
+                                    className="px-3 py-1 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                                >
+                                    Show All
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -485,8 +515,8 @@ export default function Expenses() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {recentExpenses && recentExpenses.length > 0 ? (
-                recentExpenses
+                                    {recentExpenses && recentExpenses.data && recentExpenses.data.length > 0 ? (
+                recentExpenses.data
                     .filter(expense => 
                         activeTab === 'employee' 
                             ? expense.expense_type === 'employee_pay'
@@ -537,6 +567,38 @@ export default function Expenses() {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        {/* Pagination Controls */}
+                        {recentExpenses && recentExpenses.last_page > 1 && (
+                            <div className="mt-4 flex items-center justify-between">
+                                <div className="text-sm text-gray-700">
+                                    Showing {recentExpenses.from || 0} to {recentExpenses.to || 0} of {recentExpenses.total} results
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={() => router.get(route('expenses.index'), { page: recentExpenses.current_page - 1 }, { preserveState: true })}
+                                        disabled={recentExpenses.current_page <= 1}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                        <span>Previous</span>
+                                    </button>
+                                    
+                                    <span className="px-3 py-1 text-sm text-gray-700">
+                                        Page {recentExpenses.current_page} of {recentExpenses.last_page}
+                                    </span>
+                                    
+                                    <button
+                                        onClick={() => router.get(route('expenses.index'), { page: recentExpenses.current_page + 1 }, { preserveState: true })}
+                                        disabled={recentExpenses.current_page >= recentExpenses.last_page}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                                    >
+                                        <span>Next</span>
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

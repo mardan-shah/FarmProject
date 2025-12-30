@@ -9,13 +9,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ExpenseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->get('per_page', 20);
+        $page = $request->get('page', 1);
+        
         $recentExpenses = Expense::with('user')
             ->where('user_id', auth()->id())
             ->orderBy('expense_date', 'desc')
-            ->take(10)
-            ->get();
+            ->paginate($perPage, ['*'], 'page', $page);
 
         return Inertia::render('Expenses', [
             'recentExpenses' => $recentExpenses,
@@ -33,7 +35,7 @@ class ExpenseController extends Controller
                 'expenses.*.expense_date' => 'required|date|before_or_equal:today',
                 'expenses.*.expense_type' => 'required|in:petrol,electricity,employee_pay,farm',
                 'expenses.*.expense_name' => 'nullable|string|max:255',
-                'expenses.*.amount' => 'required|numeric|min:0|max:100000',
+                'expenses.*.amount' => 'required|numeric|min:0|max:10000000',
                 'expenses.*.description' => 'nullable|string|max:1000',
             ]);
 
