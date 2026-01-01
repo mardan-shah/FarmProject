@@ -280,13 +280,27 @@ export default function PendingPayments() {
         }
     };
 
-    const handleDeletePayment = (paymentId) => {
-        if (confirm('Are you sure you want to delete this payment entry?')) {
-            const updatedPayments = paymentEntries.filter(payment => payment.id !== paymentId);
-            setPaymentEntries(updatedPayments);
-            localStorage.setItem(`payment_entries_${selectedCustomer?.id}`, JSON.stringify(updatedPayments));
+    const handleDeleteCustomer = (customerId) => {
+        if (confirm('Are you sure you want to delete this customer? This will also delete all their milk entries and payment records.')) {
+            // Remove customer from customers array
+            const updatedCustomers = customers.filter(customer => customer.id !== customerId);
             
-            setSuccessMessage('Payment deleted successfully!');
+            // Update localStorage
+            localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+            
+            // Remove customer's milk entries and payment entries
+            localStorage.removeItem(`milk_entries_${customerId}`);
+            localStorage.removeItem(`payment_entries_${customerId}`);
+            
+            // Update state
+            setCustomers(updatedCustomers);
+            
+            // Clear selected customer if it was the deleted one
+            if (selectedCustomer && selectedCustomer.id === customerId) {
+                setSelectedCustomer(null);
+            }
+            
+            setSuccessMessage('Customer deleted successfully!');
             setTimeout(() => setSuccessMessage(''), 3000);
         }
     };
@@ -376,6 +390,13 @@ export default function PendingPayments() {
                                 >
                                     <Save className="w-4 h-4" />
                                     <span>Save</span>
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteCustomer(selectedCustomer.id)}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center space-x-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Delete Customer</span>
                                 </button>
                             </div>
                         </div>
@@ -872,6 +893,16 @@ export default function PendingPayments() {
                                                 className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors cursor-pointer"
                                                 onClick={() => handleCustomerClick(customer)}
                                             />
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteCustomer(customer.id);
+                                                }}
+                                                className="w-4 h-4 text-gray-400 group-hover:text-red-600 transition-colors cursor-pointer"
+                                                title="Delete Customer"
+                                            >
+                                                <Trash2 />
+                                            </button>
                                         </div>
                                     </div>
                                     

@@ -5,10 +5,44 @@ import { useState } from 'react';
 import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Expenses() {
-    const { recentExpenses } = usePage().props;
-    const [activeTab, setActiveTab] = useState('petrol');
+    const { recentExpenses, expenseTotals, totalExpenses, selectedMonth } = usePage().props;
+    
+    // Debug logging
+    console.log('Expense Totals:', expenseTotals);
+    console.log('Petrol:', expenseTotals?.petrol);
+    console.log('Electricity:', expenseTotals?.electricity);
+    console.log('Employee Pay:', expenseTotals?.employee_pay);
+    console.log('Farm:', expenseTotals?.farm);
+    
+    // Get initial tab from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('expense_type') || 'petrol';
+    
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [successMessage, setSuccessMessage] = useState('');
     const [perPage, setPerPage] = useState(20);
+    const [localSelectedMonth, setLocalSelectedMonth] = useState(urlParams.get('month') || '');
+
+    // Generate month options for the last 12 months
+    const generateMonthOptions = () => {
+        const options = [];
+        const currentDate = new Date();
+        
+        // Add "All Time" option
+        options.push({ value: '', label: 'All Time' });
+        
+        // Add last 12 months
+        for (let i = 0; i < 12; i++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const yearMonth = `${year}-${month}`;
+            const label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+            options.push({ value: yearMonth, label });
+        }
+        
+        return options;
+    };
 
     const { data, setData, post, processing, errors, reset } = useForm({
         expenses: [{
@@ -27,13 +61,37 @@ export default function Expenses() {
         { id: 'farm', label: 'Farm Expense', icon: Home },
     ];
 
-    // Sync expense_type when tab changes
-    useEffect(() => {
+    // Handle month change
+    const handleMonthChange = (month) => {
+        console.log('Frontend - Changing month to:', month);
+        setLocalSelectedMonth(month);
+        router.get(route('expenses.index'), { 
+            expense_type: activeTab, 
+            per_page: perPage, 
+            page: 1, 
+            month: month 
+        }, { preserveState: true });
+    };
+
+    // Handle tab change
+    const handleTabChange = (tabId) => {
+        console.log('Changing tab to:', tabId);
+        setActiveTab(tabId);
+        // Update form data for new tab
+        const newExpenseType = tabId === 'employee' ? 'employee_pay' : tabId;
         setData('expenses', data.expenses.map(expense => ({
             ...expense,
-            expense_type: activeTab === 'employee' ? 'employee_pay' : activeTab,
+            expense_type: newExpenseType,
         })));
-    }, [activeTab]);
+        // Fetch filtered data for the new tab
+        console.log('Fetching data for tab:', tabId);
+        router.get(route('expenses.index'), { 
+            expense_type: tabId, 
+            per_page: perPage, 
+            page: 1, 
+            month: localSelectedMonth 
+        }, { preserveState: true });
+    };
 
     const submit = (e) => {
         e.preventDefault();
@@ -168,11 +226,21 @@ export default function Expenses() {
     };
     const handlePerPageChange = (newPerPage) => {
         setPerPage(newPerPage);
-        router.get(route('expenses.index'), { per_page: newPerPage }, { preserveState: true });
+        router.get(route('expenses.index'), { 
+            per_page: newPerPage, 
+            page: 1, 
+            expense_type: activeTab, 
+            month: localSelectedMonth 
+        }, { preserveState: true });
     };
 
     const showAll = () => {
-        router.get(route('expenses.index'), { per_page: 1000 }, { preserveState: true });
+        router.get(route('expenses.index'), { 
+            per_page: 1000, 
+            page: 1, 
+            expense_type: activeTab, 
+            month: localSelectedMonth 
+        }, { preserveState: true });
     };
 
     const renderCommonExpenseForm = () => (
@@ -401,7 +469,7 @@ export default function Expenses() {
                                 return (
                                     <button
                                         key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
+                                        onClick={() => handleTabChange(tab.id)}
                                         className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                                             activeTab === tab.id
                                                 ? 'border-orange-500 text-orange-600'
@@ -418,6 +486,7 @@ export default function Expenses() {
 
                     {/* Tab Content */}
                     <div className="p-6">
+                        {console.log('Rendering form for activeTab:', activeTab)}
                         {activeTab === 'petrol' && renderCommonExpenseForm()}
                         {activeTab === 'electricity' && renderCommonExpenseForm()}
                         {activeTab === 'employee' && renderCommonExpenseForm()}
@@ -469,6 +538,20 @@ export default function Expenses() {
                                 <h2 className="text-lg font-semibold text-gray-900">Recent Expense Records</h2>
                             </div>
                             <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-2">
+                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                    <select
+                                        value={localSelectedMonth}
+                                        onChange={(e) => handleMonthChange(e.target.value)}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        {generateMonthOptions().map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <select
                                     value={perPage}
                                     onChange={(e) => handlePerPageChange(e.target.value)}
@@ -516,13 +599,7 @@ export default function Expenses() {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {recentExpenses && recentExpenses.data && recentExpenses.data.length > 0 ? (
-                recentExpenses.data
-                    .filter(expense => 
-                        activeTab === 'employee' 
-                            ? expense.expense_type === 'employee_pay'
-                            : expense.expense_type === activeTab
-                    )
-                    .map((expense) => (
+                recentExpenses.data.map((expense) => (
                                             <tr key={expense.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {new Date(expense.expense_date).toLocaleDateString()}
@@ -568,6 +645,59 @@ export default function Expenses() {
                             </table>
                         </div>
                         
+                        {/* Expense Totals */}
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Petrol Expenses</p>
+                                    <p className="text-lg font-semibold text-blue-600">Rs.{parseFloat(expenseTotals?.petrol || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Electricity Bills</p>
+                                    <p className="text-lg font-semibold text-yellow-600">Rs.{parseFloat(expenseTotals?.electricity || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Employee Pay</p>
+                                    <p className="text-lg font-semibold text-green-600">Rs.{parseFloat(expenseTotals?.employee_pay || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Farm Expenses</p>
+                                    <p className="text-lg font-semibold text-purple-600">Rs.{parseFloat(expenseTotals?.farm || 0).toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Total All Expenses</p>
+                                    {(() => {
+                                        const petrol = parseFloat(expenseTotals?.petrol || 0);
+                                        const electricity = parseFloat(expenseTotals?.electricity || 0);
+                                        const employeePay = parseFloat(expenseTotals?.employee_pay || 0);
+                                        const farm = parseFloat(expenseTotals?.farm || 0);
+                                        const calculatedTotal = petrol + electricity + employeePay + farm;
+                                        const backendTotal = parseFloat(totalExpenses || 0);
+                                        
+                                        console.log('Individual totals:', { petrol, electricity, employeePay, farm });
+                                        console.log('Calculated Total:', calculatedTotal);
+                                        console.log('Backend Total:', backendTotal);
+                                        console.log('Match:', calculatedTotal === backendTotal);
+                                        
+                                        return (
+                                            <div>
+                                                <p className="text-xl font-bold text-gray-900">
+                                                    Rs.{backendTotal.toFixed(2)}
+                                                </p>
+                                                {calculatedTotal !== backendTotal && (
+                                                    <p className="text-xs text-red-600 mt-1">
+                                                        Warning: Calculation mismatch! Expected: Rs.{calculatedTotal.toFixed(2)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                        
                         {/* Pagination Controls */}
                         {recentExpenses && recentExpenses.last_page > 1 && (
                             <div className="mt-4 flex items-center justify-between">
@@ -576,7 +706,12 @@ export default function Expenses() {
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <button
-                                        onClick={() => router.get(route('expenses.index'), { page: recentExpenses.current_page - 1 }, { preserveState: true })}
+                                        onClick={() => router.get(route('expenses.index'), { 
+                                            page: recentExpenses.current_page - 1, 
+                                            per_page: perPage, 
+                                            expense_type: activeTab,
+                                            month: localSelectedMonth 
+                                        }, { preserveState: true })}
                                         disabled={recentExpenses.current_page <= 1}
                                         className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                                     >
@@ -589,7 +724,12 @@ export default function Expenses() {
                                     </span>
                                     
                                     <button
-                                        onClick={() => router.get(route('expenses.index'), { page: recentExpenses.current_page + 1 }, { preserveState: true })}
+                                        onClick={() => router.get(route('expenses.index'), { 
+                                            page: recentExpenses.current_page + 1, 
+                                            per_page: perPage, 
+                                            expense_type: activeTab,
+                                            month: localSelectedMonth 
+                                        }, { preserveState: true })}
                                         disabled={recentExpenses.current_page >= recentExpenses.last_page}
                                         className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                                     >

@@ -30,13 +30,28 @@ class DashboardController extends Controller
         // Total cows count
         $totalCows = Cow::count();
 
-        // Total expenses
-        $totalExpenses = Expense::sum('amount');
+        // Total expenses for current user
+        $totalExpenses = Expense::where('user_id', auth()->id())->sum('amount');
 
-        // Today's net profit (today's sales - today's expenses)
-        $todayExpenses = Expense::where('expense_date', Carbon::today())->sum('amount');
-        $todayRevenue = $todaySales ? $todaySales->sale_amount : 0;
-        $todayNetProfit = $todayRevenue - $todayExpenses;
+        // Monthly calculations (current month)
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth = Carbon::now()->endOfMonth();
+        
+        // Total milk sales for current month
+        $monthlySales = MilkSale::where('user_id', auth()->id())
+            ->whereBetween('sale_date', [$startOfMonth, $endOfMonth])
+            ->sum('sale_amount');
+            
+        // Total expenses for current month
+        $monthlyExpenses = Expense::where('user_id', auth()->id())
+            ->whereBetween('expense_date', [$startOfMonth, $endOfMonth])
+            ->sum('amount');
+            
+        // Monthly net profit
+        $monthlyNetProfit = $monthlySales - $monthlyExpenses;
+        
+        // Calculate profit margin
+        $profitMargin = $monthlySales > 0 ? (($monthlyNetProfit / $monthlySales) * 100) : 0;
 
         return Inertia::render('Dashboard', [
             'todayProduction' => $todayProduction,
@@ -44,7 +59,10 @@ class DashboardController extends Controller
             'recentProductions' => $recentProductions,
             'totalCows' => $totalCows,
             'totalExpenses' => $totalExpenses,
-            'todayNetProfit' => $todayNetProfit,
+            'monthlyNetProfit' => $monthlyNetProfit,
+            'monthlySales' => $monthlySales,
+            'monthlyExpenses' => $monthlyExpenses,
+            'profitMargin' => $profitMargin,
         ]);
     }
 }

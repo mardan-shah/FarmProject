@@ -13,14 +13,58 @@ class ExpenseController extends Controller
     {
         $perPage = $request->get('per_page', 20);
         $page = $request->get('page', 1);
+        $expenseType = $request->get('expense_type');
+        $selectedMonth = $request->get('month'); // Format: Y-m (e.g., 2026-01)
         
-        $recentExpenses = Expense::with('user')
+        // Debug logging
+        \Log::info('ExpenseController - Received month: ' . $selectedMonth);
+        
+        $query = Expense::with('user')
             ->where('user_id', auth()->id())
-            ->orderBy('expense_date', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
+            ->orderBy('expense_date', 'desc');
+            
+        // Filter by expense type if provided
+        if ($expenseType) {
+            if ($expenseType === 'employee') {
+                $query->where('expense_type', 'employee_pay');
+            } else {
+                $query->where('expense_type', $expenseType);
+            }
+        }
+        
+        // Filter by month if provided
+        if ($selectedMonth) {
+            $query->whereRaw('DATE_FORMAT(expense_date, "%Y-%m") = ?', [$selectedMonth]);
+            \Log::info('ExpenseController - Filtering by month: ' . $selectedMonth);
+        }
+        
+        $recentExpenses = $query->paginate($perPage, ['*'], 'page', $page);
+
+        // Calculate totals for each expense type (with month filter if selected)
+        $totalsQuery = Expense::where('user_id', auth()->id());
+        if ($selectedMonth) {
+            $totalsQuery->whereRaw('DATE_FORMAT(expense_date, "%Y-%m") = ?', [$selectedMonth]);
+        }
+        
+        $expenseTotals = [
+            'petrol' => (clone $totalsQuery)->where('expense_type', 'petrol')->sum('amount'),
+            'electricity' => (clone $totalsQuery)->where('expense_type', 'electricity')->sum('amount'),
+            'employee_pay' => (clone $totalsQuery)->where('expense_type', 'employee_pay')->sum('amount'),
+            'farm' => (clone $totalsQuery)->where('expense_type', 'farm')->sum('amount'),
+        ];
+
+        // Calculate total expenses (same way as DashboardController, with month filter if selected)
+        $totalExpenses = $totalsQuery->sum('amount');
+
+        // Debug the results
+        \Log::info('ExpenseController - Total expenses found: ' . $totalExpenses);
+        \Log::info('ExpenseController - Recent expenses count: ' . $recentExpenses->total());
 
         return Inertia::render('Expenses', [
             'recentExpenses' => $recentExpenses,
+            'expenseTotals' => $expenseTotals,
+            'totalExpenses' => $totalExpenses,
+            'selectedMonth' => $selectedMonth,
         ]);
     }
 

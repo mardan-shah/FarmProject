@@ -46,7 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/milk-sale/{milkSale}', [MilkSaleController::class, 'destroy'])->name('milk-sale.destroy');
     Route::get('/milk-sale/report/{period}', [MilkSaleController::class, 'report'])->name('milk-sale.report');
     
-    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses');
+    Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::delete('/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
     Route::get('/expenses/report/{period}', [ExpenseController::class, 'report'])->name('expenses.report');

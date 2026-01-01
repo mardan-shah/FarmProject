@@ -4,7 +4,7 @@ import { Head, usePage, Link } from '@inertiajs/react';
 import { TrendingUp, DollarSign, Users, AlertCircle, Droplet, ShoppingCart, PlusCircle, Calendar } from 'lucide-react';
 
 export default function Dashboard() {
-    const { todayProduction, todaySales, recentProductions, totalCows, totalExpenses, todayNetProfit } = usePage().props;
+    const { todayProduction, todaySales, recentProductions, totalCows, totalExpenses, monthlyNetProfit, monthlySales, monthlyExpenses, profitMargin } = usePage().props;
 
     const stats = [
         {
@@ -42,22 +42,13 @@ export default function Dashboard() {
             icon: ShoppingCart,
             iconBg: "bg-red-50",
             iconColor: "text-red-600"
-        },
-        {
-            name: "Today's Net Profit",
-            value: todayNetProfit !== null ? `Rs.${parseFloat(todayNetProfit).toFixed(2)}` : "Rs.0",
-            change: todayNetProfit >= 0 ? "Profit" : "Loss",
-            changeType: todayNetProfit >= 0 ? "increase" : "decrease",
-            icon: TrendingUp,
-            iconBg: "bg-yellow-50",
-            iconColor: "text-yellow-600"
         }
     ];
 
     const quickActions = [
         { name: "Add Production", icon: Droplet, color: "bg-blue-600 hover:bg-blue-700", route: "milk-production" },
         { name: "Record Sale", icon: ShoppingCart, color: "bg-green-600 hover:bg-green-700", route: "milk-sale" },
-        { name: "Add Expense", icon: DollarSign, color: "bg-orange-600 hover:bg-orange-700", route: "expenses" },
+        { name: "Add Expense", icon: DollarSign, color: "bg-orange-600 hover:bg-orange-700", route: "expenses.index" },
         { name: "Add New Cow", icon: PlusCircle, color: "bg-purple-600 hover:bg-purple-700", route: "cows" }
     ];
 
@@ -124,13 +115,13 @@ export default function Dashboard() {
 
                 <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold opacity-90">Today's Net Profit</h2>
+                        <h2 className="text-lg font-semibold opacity-90">Monthly Net Profit</h2>
                         <DollarSign className="h-8 w-8 opacity-80" />
                     </div>
-                    <p className="text-4xl font-bold mb-2">Rs.330</p>
-                    <p className="text-sm opacity-90">Sales: Rs.450 - Expenses: Rs.120</p>
+                    <p className="text-4xl font-bold mb-2">Rs.{parseFloat(monthlyNetProfit || 0).toFixed(2)}</p>
+                    <p className="text-sm opacity-90">Sales: Rs.{parseFloat(monthlySales || 0).toFixed(2)} - Expenses: Rs.{parseFloat(monthlyExpenses || 0).toFixed(2)}</p>
                     <div className="mt-4 pt-4 border-t border-green-400">
-                        <p className="text-sm font-medium">Profit Margin: 73.3%</p>
+                        <p className="text-sm font-medium">Profit Margin: {parseFloat(profitMargin || 0).toFixed(1)}%</p>
                     </div>
                 </div>
             </div>
