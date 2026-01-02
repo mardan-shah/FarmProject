@@ -6,6 +6,7 @@ use App\Models\MilkSale;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class MilkSaleController extends Controller
 {
@@ -42,8 +43,8 @@ class MilkSaleController extends Controller
     {
         $validated = $request->validate([
             'sale_date' => 'required|date|before_or_equal:today',
-            'milk_kg' => 'required|numeric|min:0|max:10000',
-            'sale_amount' => 'required|numeric|min:0|max:100000',
+            'milk_kg' => 'required|numeric|min:0|max:10000000',
+            'sale_amount' => 'required|numeric|min:0|max:10000000',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -62,8 +63,8 @@ class MilkSaleController extends Controller
 
         $validated = $request->validate([
             'sale_date' => 'required|date|before_or_equal:today',
-            'milk_kg' => 'required|numeric|min:0|max:10000',
-            'sale_amount' => 'required|numeric|min:0|max:100000',
+            'milk_kg' => 'required|numeric|min:0|max:10000000',
+            'sale_amount' => 'required|numeric|min:0|max:10000000',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -85,7 +86,72 @@ class MilkSaleController extends Controller
 
     public function report($period)
     {
-        // For future PDF report generation
-        return response()->json(['message' => 'Sales report generation coming soon']);
+        $user = auth()->user();
+        $endDate = now();
+        $startDate = $this->getStartDateByPeriod($period, $endDate);
+        
+        $sales = MilkSale::where('user_id', $user->id)
+            ->whereBetween('sale_date', [$startDate, $endDate])
+            ->orderBy('sale_date', 'asc')
+            ->get();
+
+        if ($sales->isEmpty()) {
+            return redirect()->back()->with('error', 'No sales data found for the selected period.');
+        }
+
+        $reportData = [
+            'period' => $period,
+            'startDate' => $startDate->format('M d, Y'),
+            'endDate' => $endDate->format('M d, Y'),
+            'sales' => $sales,
+            'totalMilk' => $sales->sum('milk_kg'),
+            'totalAmount' => $sales->sum('sale_amount'),
+            'averagePrice' => $sales->avg('sale_amount') / max($sales->avg('milk_kg'), 1),
+            'totalSales' => $sales->count(),
+            'user' => $user,
+            'reportTitle' => $this->getReportTitle($period),
+        ];
+
+        $pdf = Pdf::loadView('reports.milk-sale', $reportData);
+        
+        $filename = 'milk-sale-' . $period . '-' . now()->format('Y-m-d') . '.pdf';
+        
+        return $pdf->download($filename);
+    }
+
+    private function getStartDateByPeriod($period, $endDate)
+    {
+        switch ($period) {
+            case 'weekly':
+                return $endDate->copy()->subDays(7);
+            case 'monthly':
+                return $endDate->copy()->subMonth();
+            case '3-month':
+                return $endDate->copy()->subMonths(3);
+            case '6-month':
+                return $endDate->copy()->subMonths(6);
+            case '12-month':
+                return $endDate->copy()->subYear();
+            default:
+                return $endDate->copy()->subMonth();
+        }
+    }
+
+    private function getReportTitle($period)
+    {
+        switch ($period) {
+            case 'weekly':
+                return 'Weekly Milk Sales Report';
+            case 'monthly':
+                return 'Monthly Milk Sales Report';
+            case '3-month':
+                return '3-Month Milk Sales Report';
+            case '6-month':
+                return '6-Month Milk Sales Report';
+            case '12-month':
+                return '12-Month Milk Sales Report';
+            default:
+                return 'Milk Sales Report';
+        }
     }
 }

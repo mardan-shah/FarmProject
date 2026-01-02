@@ -1,8 +1,8 @@
 import React from 'react';
 import DashboardLayout from '../Layouts/DashboardLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { Calendar, Droplet, Download, FileText } from 'lucide-react';
+import { Calendar, Droplet, Download, FileText, Trash2 } from 'lucide-react';
 
 export default function MilkProduction() {
     const { recentProductions } = usePage().props;
@@ -33,11 +33,55 @@ export default function MilkProduction() {
     const downloadReport = async (period) => {
         setLoadingReport(period);
         try {
-            // Simulate PDF generation
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(`/milk-production/report/${period}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+
+            // Create blob from response
+            const blob = await response.blob();
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `milk-production-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            // Fallback to window.open for server-side errors
             window.open(`/milk-production/report/${period}`, '_blank');
         } finally {
             setLoadingReport(null);
+        }
+    };
+
+    const deleteProduction = (productionId) => {
+        if (confirm('Are you sure you want to delete this milk production record?')) {
+            router.delete(route('milk-production.destroy', productionId), {
+                onSuccess: () => {
+                    setSuccessMessage('Production record deleted successfully!');
+                    setTimeout(() => setSuccessMessage(''), 3000);
+                },
+                onError: (errors) => {
+                    console.error('Delete errors:', errors);
+                },
+            });
         }
     };
 
@@ -221,6 +265,9 @@ export default function MilkProduction() {
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Added By
                                             </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
@@ -239,11 +286,20 @@ export default function MilkProduction() {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         {production.user?.name || 'Unknown'}
                                                     </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                        <button
+                                                            onClick={() => deleteProduction(production.id)}
+                                                            className="text-red-600 hover:text-red-800 font-medium"
+                                                            title="Delete Production Record"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="4" className="px-6 py-8 text-center text-sm text-gray-500">
+                                                <td colSpan="5" className="px-6 py-8 text-center text-sm text-gray-500">
                                                     No production records found. Start by adding your first milk production record above.
                                                 </td>
                                             </tr>

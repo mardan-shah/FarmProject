@@ -10,8 +10,10 @@ export default function PendingPayments() {
     const [successMessage, setSuccessMessage] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [showAddCustomerForm, setShowAddCustomerForm] = useState(false);
-    const [entries, setEntries] = useState([{ entry_date: '', quantity_kg: '', price_per_kg: '', total_amount: '', notes: '' }]);
+    const [entries, setEntries] = useState([{ entry_date: '', quantity_kg: '', price_per_kg: '220', total_amount: '', notes: '' }]);
     const [notifications, setNotifications] = useState([]);
+    const [paymentEntries, setPaymentEntries] = useState([]);
+    const [newPayment, setNewPayment] = useState({ date: '', amount: '' });
 
     // Load customers from localStorage on component mount
     useEffect(() => {
@@ -21,6 +23,19 @@ export default function PendingPayments() {
         // Check for unpaid bills and generate notifications
         checkUnpaidBills(storedCustomers);
     }, []);
+
+    // Load payment entries when customer is selected
+    useEffect(() => {
+        if (selectedCustomer) {
+            const storedPayments = JSON.parse(localStorage.getItem(`payment_entries_${selectedCustomer.id}`) || '[]');
+            setPaymentEntries(storedPayments);
+        }
+    }, [selectedCustomer]);
+
+    // Recalculate notifications when payment entries change
+    useEffect(() => {
+        checkUnpaidBills(customers);
+    }, [paymentEntries]);
 
     // Function to check for unpaid bills
     const checkUnpaidBills = (customerList) => {
@@ -33,10 +48,16 @@ export default function PendingPayments() {
         
         customerList.forEach(customer => {
             const customerEntries = JSON.parse(localStorage.getItem(`milk_entries_${customer.id}`) || '[]');
+            const paymentEntries = JSON.parse(localStorage.getItem(`payment_entries_${customer.id}`) || '[]');
             const paymentStatus = customer.payment_status || 'pending';
             
+            // Calculate total amount and total received
+            const totalAmount = customerEntries.reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0);
+            const totalReceived = paymentEntries.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
+            const pendingAmount = totalAmount - totalReceived;
+            
             // Check if it's after the first week of current month and payment is still pending
-            if (today.getDate() > firstWeekOfDay && paymentStatus === 'pending' && customerEntries.length > 0) {
+            if (today.getDate() > firstWeekOfDay && pendingAmount > 0 && customerEntries.length > 0) {
                 // Get the latest entry date to determine billing month
                 const latestEntry = customerEntries.reduce((latest, entry) => {
                     return new Date(entry.entry_date) > new Date(latest.entry_date) ? entry : latest;
@@ -51,9 +72,10 @@ export default function PendingPayments() {
                     unpaidNotifications.push({
                         id: customer.id,
                         customerName: customer.name,
-                        totalAmount: customerEntries.reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0),
+                        totalAmount: totalAmount,
+                        pendingAmount: pendingAmount,
                         lastEntryDate: latestEntry.entry_date,
-                        message: `${customer.name} has not yet paid the bill of Rs. ${customerEntries.reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0).toFixed(2)}`
+                        message: `${customer.name} has not yet paid the bill of Rs. ${pendingAmount.toFixed(2)}`
                     });
                 }
             }
@@ -143,7 +165,7 @@ export default function PendingPayments() {
     };
 
     const addEntryRow = () => {
-        setEntries([...entries, { entry_date: '', quantity_kg: '', price_per_kg: '', total_amount: '', notes: '' }]);
+        setEntries([...entries, { entry_date: '', quantity_kg: '', price_per_kg: '220', total_amount: '', notes: '' }]);
     };
 
     const updateEntry = (index, field, value) => {
@@ -187,7 +209,7 @@ export default function PendingPayments() {
         localStorage.setItem(`milk_entries_${selectedCustomer?.id}`, JSON.stringify(existingEntries));
         
         setSuccessMessage('Milk entries saved successfully!');
-        setEntries([{ entry_date: '', quantity_kg: '', price_per_kg: '', total_amount: '', notes: '' }]);
+        setEntries([{ entry_date: '', quantity_kg: '', price_per_kg: '220', total_amount: '', notes: '' }]);
         setTimeout(() => setSuccessMessage(''), 3000);
         
         // Reload the component to show updated entries
@@ -228,6 +250,58 @@ export default function PendingPayments() {
             setTimeout(() => setSuccessMessage(''), 3000);
             // Reload the component to show updated entries
             setSelectedCustomer({...selectedCustomer});
+        }
+    };
+
+    // Payment management functions
+    const calculatePendingAmount = () => {
+        const customerEntries = JSON.parse(localStorage.getItem(`milk_entries_${selectedCustomer?.id}`) || '[]');
+        const totalAmount = customerEntries.reduce((sum, entry) => sum + parseFloat(entry.total_amount || 0), 0);
+        const totalReceived = paymentEntries.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
+        return totalAmount - totalReceived;
+    };
+
+    const handleAddPayment = () => {
+        if (newPayment.date && newPayment.amount) {
+            const payment = {
+                id: Date.now(),
+                date: newPayment.date,
+                amount: parseFloat(newPayment.amount),
+                created_at: new Date().toISOString()
+            };
+            
+            const updatedPayments = [...paymentEntries, payment];
+            setPaymentEntries(updatedPayments);
+            localStorage.setItem(`payment_entries_${selectedCustomer?.id}`, JSON.stringify(updatedPayments));
+            
+            setNewPayment({ date: '', amount: '' });
+            setSuccessMessage('Payment added successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        }
+    };
+
+    const handleDeleteCustomer = (customerId) => {
+        if (confirm('Are you sure you want to delete this customer? This will also delete all their milk entries and payment records.')) {
+            // Remove customer from customers array
+            const updatedCustomers = customers.filter(customer => customer.id !== customerId);
+            
+            // Update localStorage
+            localStorage.setItem('customers', JSON.stringify(updatedCustomers));
+            
+            // Remove customer's milk entries and payment entries
+            localStorage.removeItem(`milk_entries_${customerId}`);
+            localStorage.removeItem(`payment_entries_${customerId}`);
+            
+            // Update state
+            setCustomers(updatedCustomers);
+            
+            // Clear selected customer if it was the deleted one
+            if (selectedCustomer && selectedCustomer.id === customerId) {
+                setSelectedCustomer(null);
+            }
+            
+            setSuccessMessage('Customer deleted successfully!');
+            setTimeout(() => setSuccessMessage(''), 3000);
         }
     };
 
@@ -316,6 +390,13 @@ export default function PendingPayments() {
                                 >
                                     <Save className="w-4 h-4" />
                                     <span>Save</span>
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteCustomer(selectedCustomer.id)}
+                                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors flex items-center space-x-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Delete Customer</span>
                                 </button>
                             </div>
                         </div>
@@ -444,7 +525,7 @@ export default function PendingPayments() {
                             <div className="mt-6 flex justify-end space-x-3">
                                 <button
                                     type="button"
-                                    onClick={() => setEntries([{ entry_date: '', quantity_kg: '', price_per_kg: '', total_amount: '', notes: '' }])}
+                                    onClick={() => setEntries([{ entry_date: '', quantity_kg: '', price_per_kg: '220', total_amount: '', notes: '' }])}
                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                                 >
                                     Clear All
@@ -518,6 +599,111 @@ export default function PendingPayments() {
                                                     <Scale className="w-12 h-12 text-gray-400 mb-4" />
                                                     <p className="text-gray-500">No milk entries found</p>
                                                     <p className="text-sm text-gray-400 mt-1">Add your first milk entry above</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Payment Management Table */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <div className="p-2 bg-yellow-100 rounded-lg">
+                                        <DollarSign className="w-5 h-5 text-yellow-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-gray-900">Payment Management</h2>
+                                        <p className="text-sm text-gray-600">Track received amounts and pending balance</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm text-gray-600">Pending Amount</p>
+                                    <p className="text-2xl font-bold text-yellow-600">Rs. {calculatePendingAmount().toFixed(2)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Add Payment Form */}
+                        <div className="p-6 border-b border-gray-200">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date Received <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={newPayment.date}
+                                        onChange={(e) => setNewPayment({...newPayment, date: e.target.value})}
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Received Amount <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={newPayment.amount}
+                                        onChange={(e) => setNewPayment({...newPayment, amount: e.target.value})}
+                                        placeholder="0.00"
+                                        step="0.01"
+                                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end sm:justify-start">
+                                <button
+                                    onClick={handleAddPayment}
+                                    disabled={!newPayment.date || !newPayment.amount}
+                                    className="w-full sm:w-auto px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-300 text-white font-medium rounded-lg transition-colors"
+                                >
+                                    Add Payment
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Payment History Table */}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Received</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Received Amount</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {paymentEntries.length > 0 ? (
+                                        paymentEntries.map((payment) => (
+                                            <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    {payment.date}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    Rs. {parseFloat(payment.amount).toFixed(2)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                    <button
+                                                        onClick={() => handleDeletePayment(payment.id)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="3" className="px-6 py-12 text-center">
+                                                <div className="flex flex-col items-center">
+                                                    <DollarSign className="w-12 h-12 text-gray-400 mb-4" />
+                                                    <p className="text-gray-500">No payment entries found</p>
+                                                    <p className="text-sm text-gray-400 mt-1">Add received payments above</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -707,6 +893,16 @@ export default function PendingPayments() {
                                                 className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors cursor-pointer"
                                                 onClick={() => handleCustomerClick(customer)}
                                             />
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteCustomer(customer.id);
+                                                }}
+                                                className="w-4 h-4 text-gray-400 group-hover:text-red-600 transition-colors cursor-pointer"
+                                                title="Delete Customer"
+                                            >
+                                                <Trash2 />
+                                            </button>
                                         </div>
                                     </div>
                                     

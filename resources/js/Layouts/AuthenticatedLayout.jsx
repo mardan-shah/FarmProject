@@ -1,8 +1,8 @@
 import React from 'react';
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
+import ApplicationLogo from '../Components/ApplicationLogo';
+import Dropdown from '../Components/Dropdown';
+import NavLink from '../Components/NavLink';
+import ResponsiveNavLink from '../Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
@@ -30,6 +30,12 @@ export default function AuthenticatedLayout({ header, children }) {
                                     active={route().current('dashboard')}
                                 >
                                     Dashboard
+                                </NavLink>
+                                <NavLink
+                                    href={route('donations')}
+                                    active={route().current('donations')}
+                                >
+                                    Donations
                                 </NavLink>
                             </div>
                         </div>
@@ -134,6 +140,12 @@ export default function AuthenticatedLayout({ header, children }) {
                             active={route().current('dashboard')}
                         >
                             Dashboard
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            href={route('donations')}
+                            active={route().current('donations')}
+                        >
+                            Donations
                         </ResponsiveNavLink>
                     </div>
 

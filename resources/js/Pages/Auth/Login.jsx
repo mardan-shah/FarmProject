@@ -1,9 +1,9 @@
 import React from 'react';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
+import InputError from '../../Components/InputError';
+import InputLabel from '../../Components/InputLabel';
+import PrimaryButton from '../../Components/PrimaryButton';
+import TextInput from '../../Components/TextInput';
+import GuestLayout from '../../Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword, canRegister }) {
@@ -33,6 +33,11 @@ export default function Login({ status, canResetPassword, canRegister }) {
             <Head title={canRegister ? "Register Admin" : "Farm Login"} />
 
             <div className="text-center mb-8">
+                <div className="flex justify-center mb-4">
+                    <div className="w-20 h-20 bg-white rounded-full shadow-lg overflow-hidden">
+                        <img src="/build/assets/farm.jpeg" alt="Farm Logo" className="w-full h-full object-cover" />
+                    </div>
+                </div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     Mehmood Cattle and Dairy Farm
                 </h1>
@@ -54,25 +59,6 @@ export default function Login({ status, canResetPassword, canRegister }) {
             )}
 
             <form onSubmit={submit} autoComplete="on">
-                {canRegister && (
-                    <div className="mb-4">
-                        <InputLabel htmlFor="name" value="Name" />
-
-                        <TextInput
-                            id="name"
-                            name="name"
-                            value={data.name}
-                            className="mt-1 block w-full"
-                            autoComplete="name"
-                            isFocused={true}
-                            onChange={(e) => setData('name', e.target.value)}
-                            required
-                        />
-
-                        <InputError message={errors.name} className="mt-2" />
-                    </div>
-                )}
-
                 <div>
                     <InputLabel htmlFor="email" value="Email Address" />
 
@@ -82,7 +68,7 @@ export default function Login({ status, canResetPassword, canRegister }) {
                         name="email"
                         value={data.email}
                         className="mt-1 block w-full"
-                        autoComplete={canRegister ? "username" : "email"}
+                        autoComplete="email"
                         onChange={(e) => setData('email', e.target.value)}
                         placeholder="Enter your email"
                         required

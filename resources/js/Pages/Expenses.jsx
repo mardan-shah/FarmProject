@@ -1,16 +1,57 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import DashboardLayout from '../Layouts/DashboardLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2 } from 'lucide-react';
+import { DollarSign, Car, Zap, Users, Home, Plus, X, Calendar, FileText, Edit, Trash2, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Expenses() {
-    const { recentExpenses } = usePage().props;
-    const [activeTab, setActiveTab] = useState('petrol');
+    const { recentExpenses, expenseTotals, totalExpenses, selectedMonth } = usePage().props;
+    
+    // Debug logging
+    console.log('Expense Totals:', expenseTotals);
+    console.log('Petrol:', expenseTotals?.petrol);
+    console.log('Electricity:', expenseTotals?.electricity);
+    console.log('Employee Pay:', expenseTotals?.employee_pay);
+    console.log('Farm:', expenseTotals?.farm);
+    
+    // Get initial tab from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialTab = urlParams.get('expense_type') || 'petrol';
+    
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [successMessage, setSuccessMessage] = useState('');
+    const [perPage, setPerPage] = useState(20);
+    const [localSelectedMonth, setLocalSelectedMonth] = useState(urlParams.get('month') || '');
+
+    // Generate month options for the last 12 months
+    const generateMonthOptions = () => {
+        const options = [];
+        const currentDate = new Date();
+        
+        // Add "All Time" option
+        options.push({ value: '', label: 'All Time' });
+        
+        // Add last 12 months
+        for (let i = 0; i < 12; i++) {
+            const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+            const yearMonth = `${year}-${month}`;
+            const label = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+            options.push({ value: yearMonth, label });
+        }
+        
+        return options;
+    };
 
     const { data, setData, post, processing, errors, reset } = useForm({
-        expenses: [{ expense_date: '', amount: '', description: '' }]
+        expenses: [{
+            expense_date: '',
+            amount: '',
+            description: '',
+            expense_name: '',
+            expense_type: activeTab === 'employee' ? 'employee_pay' : activeTab,
+        }]
     });
 
     const tabs = [
@@ -20,11 +61,43 @@ export default function Expenses() {
         { id: 'farm', label: 'Farm Expense', icon: Home },
     ];
 
+    // Handle month change
+    const handleMonthChange = (month) => {
+        console.log('Frontend - Changing month to:', month);
+        setLocalSelectedMonth(month);
+        router.get(route('expenses.index'), { 
+            expense_type: activeTab, 
+            per_page: perPage, 
+            page: 1, 
+            month: month 
+        }, { preserveState: true });
+    };
+
+    // Handle tab change
+    const handleTabChange = (tabId) => {
+        console.log('Changing tab to:', tabId);
+        setActiveTab(tabId);
+        // Update form data for new tab
+        const newExpenseType = tabId === 'employee' ? 'employee_pay' : tabId;
+        setData('expenses', data.expenses.map(expense => ({
+            ...expense,
+            expense_type: newExpenseType,
+        })));
+        // Fetch filtered data for the new tab
+        console.log('Fetching data for tab:', tabId);
+        router.get(route('expenses.index'), { 
+            expense_type: tabId, 
+            per_page: perPage, 
+            page: 1, 
+            month: localSelectedMonth 
+        }, { preserveState: true });
+    };
+
     const submit = (e) => {
         e.preventDefault();
-        console.log('Submit called');
-        console.log('Current data:', data);
-        console.log('Active tab:', activeTab);
+        
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
         
         // Validate that at least one expense has required fields
         const hasValidExpense = data.expenses.some(expense => 
@@ -36,44 +109,50 @@ export default function Expenses() {
             return;
         }
         
-        // Add expense_type to each expense based on active tab
-        const expensesWithType = data.expenses.map(expense => ({
-            ...expense,
-            expense_type: activeTab === 'employee' ? 'employee_pay' : activeTab,
-            expense_name: (activeTab === 'farm' || activeTab === 'electricity' || activeTab === 'employee') ? expense.expenseName || null : null
-        }));
+        // Check for future dates
+        const futureDateExpense = data.expenses.find(expense => 
+            expense.expense_date && expense.expense_date > today
+        );
         
-        // Double-check that expense_type is set
-        expensesWithType.forEach(expense => {
-            if (!expense.expense_type) {
-                expense.expense_type = activeTab === 'employee' ? 'employee_pay' : activeTab;
-            }
-        });
+        if (futureDateExpense) {
+            alert('You cannot submit expenses with future dates. Please select today\'s date or a past date.');
+            return;
+        }
         
-        console.log('Final expenses to submit:', expensesWithType);
-        console.log('First expense details:', expensesWithType[0]);
-        console.log('Route:', route('expenses.store'));
-        
-        // Update the form data with the processed expenses
-        const finalData = { 
-            expenses: expensesWithType,
-            activeTab: activeTab
-        };
-        setData('expenses', expensesWithType);
-        
-        post(route('expenses.store'), finalData, {
-            onSuccess: (response) => {
-                console.log('Success response:', response);
+        post(route('expenses.store'), {
+            onSuccess: () => {
                 setSuccessMessage('Expenses saved successfully!');
-                setData('expenses', [{ expense_date: '', amount: '', description: '' }]);
+                // Reset form based on active tab
+                const resetExpense = (activeTab === 'farm' || activeTab === 'electricity' || activeTab === 'employee')
+                    ? { expense_name: '', amount: '', expense_date: '', description: '', expense_type: activeTab === 'employee' ? 'employee_pay' : activeTab }
+                    : { expense_date: '', amount: '', description: '', expense_type: activeTab };
+                setData('expenses', [resetExpense]);
                 setTimeout(() => setSuccessMessage(''), 3000);
             },
             onError: (errors) => {
                 console.error('Form errors:', errors);
-            },
-            onFinish: () => {
-                console.log('Request finished');
-                setData('expenses', [{ expense_date: '', amount: '', description: '' }]);
+                let errorMessage = 'Error saving expenses:\n';
+                
+                if (errors.expenses) {
+                    if (Array.isArray(errors.expenses)) {
+                        errors.expenses.forEach((expenseErrors, index) => {
+                            if (typeof expenseErrors === 'object') {
+                                errorMessage += `Expense ${index + 1}:\n`;
+                                Object.entries(expenseErrors).forEach(([field, messages]) => {
+                                    errorMessage += `  ${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}\n`;
+                                });
+                            }
+                        });
+                    } else {
+                        errorMessage += errors.expenses;
+                    }
+                } else {
+                    Object.entries(errors).forEach(([field, messages]) => {
+                        errorMessage += `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}\n`;
+                    });
+                }
+                
+                alert(errorMessage);
             },
         });
     };
@@ -93,11 +172,16 @@ export default function Expenses() {
     };
 
     const addExpenseRow = () => {
-        const newExpense = (activeTab === 'farm' || activeTab === 'electricity' || activeTab === 'employee')
-            ? { expenseName: '', amount: '', expense_date: '', description: '' }
-            : { expense_date: '', amount: '', description: '' };
-        
-        setData('expenses', [...data.expenses, newExpense]);
+        setData('expenses', [
+            ...data.expenses,
+            {
+                expense_date: '',
+                amount: '',
+                description: '',
+                expense_name: '',
+                expense_type: activeTab === 'employee' ? 'employee_pay' : activeTab,
+            }
+        ]);
     };
 
     const updateExpense = (index, field, value) => {
@@ -109,87 +193,143 @@ export default function Expenses() {
     const removeExpenseRow = (index) => {
         setData('expenses', data.expenses.filter((_, i) => i !== index));
     };
+
+    const downloadReport = async (period) => {
+        try {
+            const response = await fetch(`/expenses/report/${period}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/pdf',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate report');
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `expenses-${period}-${new Date().toISOString().split('T')[0]}.pdf`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            window.open(`/expenses/report/${period}`, '_blank');
+        }
+    };
+    const handlePerPageChange = (newPerPage) => {
+        setPerPage(newPerPage);
+        router.get(route('expenses.index'), { 
+            per_page: newPerPage, 
+            page: 1, 
+            expense_type: activeTab, 
+            month: localSelectedMonth 
+        }, { preserveState: true });
+    };
+
+    const showAll = () => {
+        router.get(route('expenses.index'), { 
+            per_page: 1000, 
+            page: 1, 
+            expense_type: activeTab, 
+            month: localSelectedMonth 
+        }, { preserveState: true });
+    };
+
     const renderCommonExpenseForm = () => (
         <form onSubmit={submit} className="space-y-4">
             {data.expenses.map((expense, index) => (
-                <div key={index} className="flex items-end space-x-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Select Date
-                        </label>
-                        <input
-                            type="date"
-                            value={expense.expense_date || ''}
-                            onChange={(e) => updateExpense(index, 'expense_date', e.target.value)}
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
+                <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-gray-700">Expense #{index + 1}</h3>
+                        {data.expenses.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={() => removeExpenseRow(index)}
+                                className="text-red-600 hover:text-red-800"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                     
-                    {activeTab === 'electricity' && (
-                        <div className="flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Bill Type
+                                Select Date
                             </label>
                             <input
-                                type="text"
-                                value={expense.expenseName || ''}
-                                onChange={(e) => updateExpense(index, 'expenseName', e.target.value)}
-                                placeholder="e.g., Monthly Bill, Maintenance"
+                                type="date"
+                                value={expense.expense_date || ''}
+                                onChange={(e) => updateExpense(index, 'expense_date', e.target.value)}
+                                max={new Date().toISOString().split('T')[0]}
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                             />
                         </div>
-                    )}
-                    
-                    {activeTab === 'employee' && (
-                        <div className="flex-1">
+                        
+                        {activeTab === 'electricity' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Bill Type
+                                </label>
+                                <input
+                                    type="text"
+                                    value={expense.expense_name || ''}
+                                    onChange={(e) => updateExpense(index, 'expense_name', e.target.value)}
+                                    placeholder="e.g., Monthly Bill, Maintenance"
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                />
+                            </div>
+                        )}
+                        
+                        {activeTab === 'employee' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Employee Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={expense.expense_name || ''}
+                                    onChange={(e) => updateExpense(index, 'expense_name', e.target.value)}
+                                    placeholder="e.g., John Doe"
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                />
+                            </div>
+                        )}
+                        
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Employee Name
+                                Amount
                             </label>
                             <input
-                                type="text"
-                                value={expense.expenseName || ''}
-                                onChange={(e) => updateExpense(index, 'expenseName', e.target.value)}
-                                placeholder="e.g., John Doe"
+                                type="number"
+                                value={expense.amount || ''}
+                                onChange={(e) => updateExpense(index, 'amount', e.target.value)}
+                                placeholder="0.00"
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                             />
                         </div>
-                    )}
-                    
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Amount
-                        </label>
-                        <input
-                            type="number"
-                            value={expense.amount || ''}
-                            onChange={(e) => updateExpense(index, 'amount', e.target.value)}
-                            placeholder="0.00"
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
+                        
+                        <div className="sm:col-span-2 lg:col-span-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Description
+                            </label>
+                            <input
+                                type="text"
+                                value={expense.description || ''}
+                                onChange={(e) => updateExpense(index, 'description', e.target.value)}
+                                placeholder="Enter description"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                        </div>
                     </div>
-                    
-                    <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Description
-                        </label>
-                        <input
-                            type="text"
-                            value={expense.description || ''}
-                            onChange={(e) => updateExpense(index, 'description', e.target.value)}
-                            placeholder="Enter description"
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
-                    </div>
-                    
-                    {data.expenses.length > 1 && (
-                        <button
-                            type="button"
-                            onClick={() => removeExpenseRow(index)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
                 </div>
             ))}
             
@@ -208,47 +348,61 @@ export default function Expenses() {
     const renderFarmExpenseForm = () => (
         <form onSubmit={submit} className="space-y-4">
             {data.expenses.map((expense, index) => (
-                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Expense Name
-                        </label>
-                        <input
-                            type="text"
-                            value={expense.expenseName || ''}
-                            onChange={(e) => updateExpense(index, 'expenseName', e.target.value)}
-                            placeholder="e.g., Feed, Medicine"
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
+                <div key={index} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-gray-700">Expense #{index + 1}</h3>
+                        {data.expenses.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={() => removeExpenseRow(index)}
+                                className="text-red-600 hover:text-red-800"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                     
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Amount
-                        </label>
-                        <input
-                            type="number"
-                            value={expense.amount || ''}
-                            onChange={(e) => updateExpense(index, 'amount', e.target.value)}
-                            placeholder="0.00"
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Date Picker
-                        </label>
-                        <input
-                            type="date"
-                            value={expense.expense_date || ''}
-                            onChange={(e) => updateExpense(index, 'expense_date', e.target.value)}
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                        />
-                    </div>
-                    
-                    <div className="flex items-end space-x-2">
-                        <div className="flex-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Expense Name
+                            </label>
+                            <input
+                                type="text"
+                                value={expense.expense_name || ''}
+                                onChange={(e) => updateExpense(index, 'expense_name', e.target.value)}
+                                placeholder="e.g., Feed, Medicine"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Amount
+                            </label>
+                            <input
+                                type="number"
+                                value={expense.amount || ''}
+                                onChange={(e) => updateExpense(index, 'amount', e.target.value)}
+                                placeholder="0.00"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Date Picker
+                            </label>
+                            <input
+                                type="date"
+                                value={expense.expense_date || ''}
+                                onChange={(e) => updateExpense(index, 'expense_date', e.target.value)}
+                                max={new Date().toISOString().split('T')[0]}
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                            />
+                        </div>
+                        
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Description
                             </label>
@@ -260,16 +414,6 @@ export default function Expenses() {
                                 className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                             />
                         </div>
-                        
-                        {data.expenses.length > 1 && (
-                            <button
-                                type="button"
-                                onClick={() => removeExpenseRow(index)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                        )}
                     </div>
                 </div>
             ))}
@@ -325,7 +469,7 @@ export default function Expenses() {
                                 return (
                                     <button
                                         key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
+                                        onClick={() => handleTabChange(tab.id)}
                                         className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                                             activeTab === tab.id
                                                 ? 'border-orange-500 text-orange-600'
@@ -342,6 +486,7 @@ export default function Expenses() {
 
                     {/* Tab Content */}
                     <div className="p-6">
+                        {console.log('Rendering form for activeTab:', activeTab)}
                         {activeTab === 'petrol' && renderCommonExpenseForm()}
                         {activeTab === 'electricity' && renderCommonExpenseForm()}
                         {activeTab === 'employee' && renderCommonExpenseForm()}
@@ -349,14 +494,81 @@ export default function Expenses() {
                     </div>
                 </div>
 
-                {/* Recent Expenses Records */}
+                {/* Reports Section */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                         <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-orange-100 rounded-lg">
-                                <FileText className="w-5 h-5 text-orange-600" />
+                            <div className="p-2 bg-green-100 rounded-lg">
+                                <FileText className="w-5 h-5 text-green-600" />
                             </div>
-                            <h2 className="text-lg font-semibold text-gray-900">Recent Expense Records</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">Expense Reports</h2>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            {[
+                                { period: 'weekly', label: 'Weekly Report' },
+                                { period: 'monthly', label: 'Monthly Report' },
+                                { period: '3-month', label: '3-Month Report' },
+                                { period: '6-month', label: '6-Month Report' },
+                                { period: '12-month', label: '12-Month Report' },
+                            ].map((report) => (
+                                <button
+                                    key={report.period}
+                                    onClick={() => downloadReport(report.period)}
+                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center justify-center space-x-2"
+                                >
+                                    <Download className="w-4 h-4 text-gray-500" />
+                                    <span className="text-sm font-medium text-gray-700">{report.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Recent Expenses Records */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                                <div className="p-2 bg-orange-100 rounded-lg">
+                                    <FileText className="w-5 h-5 text-orange-600" />
+                                </div>
+                                <h2 className="text-lg font-semibold text-gray-900">Recent Expense Records</h2>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-2">
+                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                    <select
+                                        value={localSelectedMonth}
+                                        onChange={(e) => handleMonthChange(e.target.value)}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        {generateMonthOptions().map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <select
+                                    value={perPage}
+                                    onChange={(e) => handlePerPageChange(e.target.value)}
+                                    className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                >
+                                    <option value="10">10 per page</option>
+                                    <option value="20">20 per page</option>
+                                    <option value="50">50 per page</option>
+                                    <option value="100">100 per page</option>
+                                </select>
+                                <button
+                                    onClick={showAll}
+                                    className="px-3 py-1 text-sm bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                                >
+                                    Show All
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -386,14 +598,8 @@ export default function Expenses() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {recentExpenses && recentExpenses.length > 0 ? (
-                recentExpenses
-                    .filter(expense => 
-                        activeTab === 'employee' 
-                            ? expense.expense_type === 'employee_pay'
-                            : expense.expense_type === activeTab
-                    )
-                    .map((expense) => (
+                                    {recentExpenses && recentExpenses.data && recentExpenses.data.length > 0 ? (
+                recentExpenses.data.map((expense) => (
                                             <tr key={expense.id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {new Date(expense.expense_date).toLocaleDateString()}
@@ -413,7 +619,7 @@ export default function Expenses() {
                                                     {expense.expense_name || '-'}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    ${parseFloat(expense.amount).toFixed(2)}
+                                                    Rs.{parseFloat(expense.amount).toFixed(2)}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-500">
                                                     {expense.description || '-'}
@@ -438,6 +644,101 @@ export default function Expenses() {
                                 </tbody>
                             </table>
                         </div>
+                        
+                        {/* Expense Totals */}
+                        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Petrol Expenses</p>
+                                    <p className="text-lg font-semibold text-blue-600">Rs.{parseFloat(expenseTotals?.petrol || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Electricity Bills</p>
+                                    <p className="text-lg font-semibold text-yellow-600">Rs.{parseFloat(expenseTotals?.electricity || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Employee Pay</p>
+                                    <p className="text-lg font-semibold text-green-600">Rs.{parseFloat(expenseTotals?.employee_pay || 0).toFixed(2)}</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Farm Expenses</p>
+                                    <p className="text-lg font-semibold text-purple-600">Rs.{parseFloat(expenseTotals?.farm || 0).toFixed(2)}</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <div className="text-center">
+                                    <p className="text-sm text-gray-600 mb-1">Total All Expenses</p>
+                                    {(() => {
+                                        const petrol = parseFloat(expenseTotals?.petrol || 0);
+                                        const electricity = parseFloat(expenseTotals?.electricity || 0);
+                                        const employeePay = parseFloat(expenseTotals?.employee_pay || 0);
+                                        const farm = parseFloat(expenseTotals?.farm || 0);
+                                        const calculatedTotal = petrol + electricity + employeePay + farm;
+                                        const backendTotal = parseFloat(totalExpenses || 0);
+                                        
+                                        console.log('Individual totals:', { petrol, electricity, employeePay, farm });
+                                        console.log('Calculated Total:', calculatedTotal);
+                                        console.log('Backend Total:', backendTotal);
+                                        console.log('Match:', calculatedTotal === backendTotal);
+                                        
+                                        return (
+                                            <div>
+                                                <p className="text-xl font-bold text-gray-900">
+                                                    Rs.{backendTotal.toFixed(2)}
+                                                </p>
+                                                {calculatedTotal !== backendTotal && (
+                                                    <p className="text-xs text-red-600 mt-1">
+                                                        Warning: Calculation mismatch! Expected: Rs.{calculatedTotal.toFixed(2)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* Pagination Controls */}
+                        {recentExpenses && recentExpenses.last_page > 1 && (
+                            <div className="mt-4 flex items-center justify-between">
+                                <div className="text-sm text-gray-700">
+                                    Showing {recentExpenses.from || 0} to {recentExpenses.to || 0} of {recentExpenses.total} results
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={() => router.get(route('expenses.index'), { 
+                                            page: recentExpenses.current_page - 1, 
+                                            per_page: perPage, 
+                                            expense_type: activeTab,
+                                            month: localSelectedMonth 
+                                        }, { preserveState: true })}
+                                        disabled={recentExpenses.current_page <= 1}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                        <span>Previous</span>
+                                    </button>
+                                    
+                                    <span className="px-3 py-1 text-sm text-gray-700">
+                                        Page {recentExpenses.current_page} of {recentExpenses.last_page}
+                                    </span>
+                                    
+                                    <button
+                                        onClick={() => router.get(route('expenses.index'), { 
+                                            page: recentExpenses.current_page + 1, 
+                                            per_page: perPage, 
+                                            expense_type: activeTab,
+                                            month: localSelectedMonth 
+                                        }, { preserveState: true })}
+                                        disabled={recentExpenses.current_page >= recentExpenses.last_page}
+                                        className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
+                                    >
+                                        <span>Next</span>
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
