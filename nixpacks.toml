@@ -1,25 +1,22 @@
 [phases.setup]
-# Add your specific system packages here
 nixPkgs = [
-    "php83", 
-    "php83Extensions.gd", 
-    "php83Extensions.intl", 
-    "php83Extensions.zip",
-    "php83Extensions.bcmath",
-    "php83Extensions.pdo_mysql",
-    "php83Packages.composer",
+    "php84",  # Changed from php83
+    "php84Extensions.gd",  # Changed from php83Extensions
+    "php84Extensions.intl",
+    "php84Extensions.zip",
+    "php84Extensions.bcmath",
+    "php84Extensions.pdo_mysql",
+    "php84Packages.composer",  # Changed from php83Packages
     "nodejs_20"
 ]
 
 [phases.install]
-# Standard Laravel installation steps
 cmds = [
     "composer install --no-dev --optimize-autoloader",
     "npm install"
 ]
 
 [phases.build]
-# Compile assets and cache Laravel configuration
 cmds = [
     "npm run build",
     "php artisan config:cache",
@@ -27,5 +24,4 @@ cmds = [
 ]
 
 [start]
-# Force the application to listen on port 8004
 cmd = "php artisan serve --host=0.0.0.0 --port=8004"
