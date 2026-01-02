@@ -1,34 +1,31 @@
-# nixpacks.toml
-
 [phases.setup]
+# Add your specific system packages here
 nixPkgs = [
-    "php82",
-    "php82Packages.composer",
-    "php82Extensions.pdo_mysql",
-    "php82Extensions.gd",
-    "php82Extensions.bcmath",
-    "php82Extensions.zip",
-    "php82Extensions.fileinfo",
-    "php82Extensions.tokenizer",
-    "php82Extensions.xml",
-    "php82Extensions.curl",
-    "php82Extensions.mbstring",
-    "nodejs_22",
-    "git",
-    "unzip"
+    "php83", 
+    "php83Extensions.gd", 
+    "php83Extensions.intl", 
+    "php83Extensions.zip",
+    "php83Extensions.bcmath",
+    "php83Extensions.pdo_mysql",
+    "php83Packages.composer",
+    "nodejs_20"
+]
+
+[phases.install]
+# Standard Laravel installation steps
+cmds = [
+    "composer install --no-dev --optimize-autoloader",
+    "npm install"
 ]
 
 [phases.build]
+# Compile assets and cache Laravel configuration
 cmds = [
-    "mkdir -p storage/framework/{sessions,views,cache}",
-    "chmod -R 775 storage bootstrap/cache",
-    "npm ci && npm run build",
-    # 1. Install prod deps (removes dev files)
-    # 2. --no-scripts prevents crashing
-    "composer install --no-dev --optimize-autoloader --ignore-platform-reqs --no-scripts",
-    # 3. CRITICAL: Delete the stale manifest that lists the dev packages we just removed
-    "rm -f bootstrap/cache/*.php"
+    "npm run build",
+    "php artisan config:cache",
+    "php artisan route:cache"
 ]
 
 [start]
-cmd = "php artisan storage:link && php artisan optimize && php artisan migrate --force && php artisan queue:work --daemon & php artisan serve --host=0.0.0.0 --port=8002"
+# Force the application to listen on port 8004
+cmd = "php artisan serve --host=0.0.0.0 --port=8004"
