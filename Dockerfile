@@ -53,6 +53,10 @@ COPY . .
 # Copy built frontend assets from the frontend stage
 COPY --from=frontend /app/public/build public/build
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Set permissions for Laravel
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
@@ -60,5 +64,6 @@ RUN chown -R www-data:www-data /var/www/html \
 # Expose port 8004
 EXPOSE 8004
 
-# Start Apache
+# Use custom entrypoint
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]
