@@ -59,10 +59,8 @@ return [
             'strict' => true,
             'engine' => null,
             'options' => extension_loaded('pdo_mysql') ? array_filter([
-    (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
-    (defined('PDO::MYSQL_ATTR_SSL_PUBLIC_KEY_RETRIEVAL') ? \PDO::MYSQL_ATTR_SSL_PUBLIC_KEY_RETRIEVAL : 1022) => true,
-    \PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-]) : [],
+                (PHP_VERSION_ID >= 80500 ? \Pdo\Mysql::ATTR_SSL_CA : \PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
         ],
 
         'mariadb' => [
