@@ -60,12 +60,6 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 EXPOSE 80
 
-# ==========================================
-# 🛑 DEBUG MODE ENGAGED
-# We disable the actual app startup so the container stays alive.
-# ==========================================
-
-# ENTRYPOINT ["docker-entrypoint.sh"]
-# CMD ["apache2-foreground"]
-
-CMD ["tail", "-f", "/dev/null"]
+# The critical startup command
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["apache2-foreground"]
