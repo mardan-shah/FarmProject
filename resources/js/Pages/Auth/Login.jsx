@@ -59,6 +59,25 @@ export default function Login({ status, canResetPassword, canRegister }) {
             )}
 
             <form onSubmit={submit} autoComplete="on">
+                {canRegister && (
+                    <div className="mb-4">
+                        <InputLabel htmlFor="name" value="Name" />
+
+                        <TextInput
+                            id="name"
+                            name="name"
+                            value={data.name}
+                            className="mt-1 block w-full"
+                            autoComplete="name"
+                            isFocused={true}
+                            onChange={(e) => setData('name', e.target.value)}
+                            required
+                        />
+
+                        <InputError message={errors.name} className="mt-2" />
+                    </div>
+                )}
+
                 <div>
                     <InputLabel htmlFor="email" value="Email Address" />
 
