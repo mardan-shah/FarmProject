@@ -9,8 +9,7 @@ RUN npm run build
 # Stage 2: Serve the application with PHP & Apache
 FROM php:8.4-apache
 
-# Install system dependencies
-# ADDED: dos2unix to fix Windows line-ending crashes in entrypoint scripts
+# Install system dependencies (including dos2unix)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
@@ -52,7 +51,6 @@ COPY --from=frontend /app/public/build public/build
 
 # Setup entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/
-# CRITICAL FIX: Convert Windows line endings (CRLF) to Linux (LF)
 RUN dos2unix /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
@@ -62,5 +60,12 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 EXPOSE 80
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
+# ==========================================
+# 🛑 DEBUG MODE ENGAGED
+# We disable the actual app startup so the container stays alive.
+# ==========================================
+
+# ENTRYPOINT ["docker-entrypoint.sh"]
+# CMD ["apache2-foreground"]
+
+CMD ["tail", "-f", "/dev/null"]
