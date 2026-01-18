@@ -1,31 +1,25 @@
 #!/bin/bash
 set -e
 
-# Turn on maintenance mode
-# php artisan down || true
-
 # Run migrations if DB credentials are present
-if [ -n "$DB_DATABASE" ]; then
+if [ -n "$DB_HOST" ]; then
     echo "Running migrations..."
     php artisan migrate --force || echo "Migration failed, continuing..."
 fi
 
-# Clear any old caches and re-optimize
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+# Clear and cache configurations
+echo "Clearing caches..."
+php artisan optimize:clear || echo "Cache clear failed, continuing..."
 
-if [ -n "$APP_KEY" ]; then
-    echo "Caching configuration..."
-    php artisan optimize
-    php artisan view:cache
-fi
+echo "Caching configuration..."
+php artisan config:cache
+php artisan event:cache
+php artisan route:cache
+php artisan view:cache
 
-# Fix permissions for storage directory just in case
-chown -R www-data:www-data /var/www/html/storage
-
-# Turn off maintenance mode
-# php artisan up
+# Fix permissions for storage directory
+echo "Fixing permissions..."
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 echo "Starting Apache..."
 exec "$@"
