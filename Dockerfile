@@ -30,9 +30,19 @@ RUN a2enmod rewrite
 
 # Configure Apache
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+
+# 1. Update the document root
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf \
     && echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# 2. CRITICAL FIX: Allow .htaccess overrides (Fixes 404 on login)
+RUN echo "<Directory ${APACHE_DOCUMENT_ROOT}>" > /etc/apache2/conf-available/laravel.conf \
+    && echo "    Options Indexes FollowSymLinks" >> /etc/apache2/conf-available/laravel.conf \
+    && echo "    AllowOverride All" >> /etc/apache2/conf-available/laravel.conf \
+    && echo "    Require all granted" >> /etc/apache2/conf-available/laravel.conf \
+    && echo "</Directory>" >> /etc/apache2/conf-available/laravel.conf \
+    && a2enconf laravel
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
