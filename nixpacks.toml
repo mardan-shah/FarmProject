@@ -9,6 +9,11 @@ nixPkgs = [
     "php84Extensions.exif",
     "php84Extensions.pcntl",
     "php84Extensions.opcache",
+    "php84Extensions.mbstring",
+    "php84Extensions.xml",
+    "php84Extensions.curl",
+    "php84Extensions.tokenizer",
+    "php84Extensions.ctype",
     "php84Packages.composer",
     "nodejs_20"
 ]
